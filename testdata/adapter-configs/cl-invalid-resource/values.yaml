@@ -13,12 +13,12 @@ adapterTaskConfig:
 broker:
   create: true
   googlepubsub:
-    projectId: ${GCP_PROJECT_ID}
-    subscriptionId: ${NAMESPACE}-clusters-${ADAPTER_NAME}
+    project_id: ${GCP_PROJECT_ID}
+    subscription_id: ${NAMESPACE}-clusters-${ADAPTER_NAME}
     topic: ${NAMESPACE}-clusters
-    deadLetterTopic: ${NAMESPACE}-clusters-dlq
-    createTopicIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}
-    createSubscriptionIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}
+    dead_letter_topic: ${NAMESPACE}-clusters-dlq
+    create_topic_if_missing: ${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}
+    create_subscription_if_missing: ${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}
 
 image:
   registry: ${IMAGE_REGISTRY}

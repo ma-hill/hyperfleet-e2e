@@ -179,12 +179,12 @@ install_adapter_instance() {
     --set "image.registry=${IMAGE_REGISTRY}"
     --set "image.repository=${ADAPTER_IMAGE_REPO}"
     --set "image.tag=${ADAPTER_IMAGE_TAG}"
-    --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
-    --set "broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
-    --set "broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
-    --set "broker.googlepubsub.subscriptionId=${subscription_id}"
+    --set "broker.googlepubsub.project_id=${GCP_PROJECT_ID}"
+    --set "broker.googlepubsub.create_topic_if_missing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
+    --set "broker.googlepubsub.create_subscription_if_missing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
+    --set "broker.googlepubsub.subscription_id=${subscription_id}"
     --set "broker.googlepubsub.topic=${topic}"
-    --set "broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
+    --set "broker.googlepubsub.dead_letter_topic=${dead_letter_topic}"
   )
 
   log_info "Executing Helm command:"
