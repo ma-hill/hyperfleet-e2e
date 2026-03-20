@@ -19,10 +19,10 @@ broker:
     dead_letter_topic: CHANGE_ME
 
 image:
-  registry: CHANGE_ME
-  repository: ci/hyperfleet-adapter
+  registry: ${IMAGE_REGISTRY}
+  repository: ${ADAPTER_IMAGE_REPO}
   pullPolicy: Always
-  tag: latest
+  tag: ${ADAPTER_IMAGE_TAG}
 
 rbac:
    resources:
