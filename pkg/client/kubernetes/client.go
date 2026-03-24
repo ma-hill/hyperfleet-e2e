@@ -45,8 +45,38 @@ func NewClient() (*Client, error) {
 
 // DeleteNamespaceAndWait deletes a namespace and waits for it to be fully removed
 func (c *Client) DeleteNamespaceAndWait(ctx context.Context, namespace string) error {
-	// Delete namespace
-	err := c.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
+	// Check if namespace exists first
+	_, err := c.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil // Already deleted
+	}
+
+	// Delete all resources in the namespace to speed up cleanup
+	// This helps avoid timeout issues when namespaces have many resources
+	gracePeriod := int64(0)
+	propagationPolicy := metav1.DeletePropagationForeground
+	deleteOpts := metav1.DeleteOptions{
+		GracePeriodSeconds: &gracePeriod,
+		PropagationPolicy:  &propagationPolicy,
+	}
+
+	// Delete deployments
+	_ = c.AppsV1().Deployments(namespace).DeleteCollection(ctx, deleteOpts, metav1.ListOptions{})
+
+	// Delete jobs
+	_ = c.BatchV1().Jobs(namespace).DeleteCollection(ctx, deleteOpts, metav1.ListOptions{})
+
+	// Delete configmaps
+	_ = c.CoreV1().ConfigMaps(namespace).DeleteCollection(ctx, deleteOpts, metav1.ListOptions{})
+
+	// Delete pods
+	_ = c.CoreV1().Pods(namespace).DeleteCollection(ctx, deleteOpts, metav1.ListOptions{})
+
+	// Delete namespace with foreground propagation to ensure resources are cleaned up
+	nsDeleteOpts := metav1.DeleteOptions{
+		PropagationPolicy: &propagationPolicy,
+	}
+	err = c.CoreV1().Namespaces().Delete(ctx, namespace, nsDeleteOpts)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete namespace %s: %w", namespace, err)
 	}
@@ -56,8 +86,8 @@ func (c *Client) DeleteNamespaceAndWait(ctx context.Context, namespace string) e
 		Duration: 500 * time.Millisecond,
 		Factor:   1.5,
 		Jitter:   0.1,
-		Steps:    20,
-		Cap:      10 * time.Second, // Cap individual retries at 10s for ~2.4 min total timeout
+		Steps:    30,                // Increased from 20 to give more time
+		Cap:      15 * time.Second, // Increased cap for better handling of stuck resources
 	}
 	err = wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
 		_, err := c.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
@@ -86,6 +116,23 @@ func (c *Client) FetchNamespace(ctx context.Context, name string) (*corev1.Names
 		return nil, fmt.Errorf("failed to get namespace %s: %w", name, err)
 	}
 	return ns, nil
+}
+
+// FindNamespacesByPrefix finds all namespaces whose name starts with the given prefix
+func (c *Client) FindNamespacesByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	namespaces, err := c.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	var matchingNamespaces []string
+	for _, ns := range namespaces.Items {
+		if len(ns.Name) >= len(prefix) && ns.Name[:len(prefix)] == prefix {
+			matchingNamespaces = append(matchingNamespaces, ns.Name)
+		}
+	}
+
+	return matchingNamespaces, nil
 }
 
 // FetchConfigMap gets a configmap by name in the specified namespace

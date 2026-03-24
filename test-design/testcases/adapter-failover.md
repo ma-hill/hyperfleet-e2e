@@ -3,7 +3,6 @@
 ## Table of Contents
 
 1. [Adapter can detect and report failures to cluster API endpoints](#test-title-adapter-can-detect-and-report-failures-to-cluster-api-endpoints)
-2. [Adapter can detect and handle resource timeouts to cluster API endpoints](#test-title-adapter-can-detect-and-handle-resource-timeouts-to-cluster-api-endpoints)
 
 ---
 
@@ -75,77 +74,6 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
    #   "status": "False",
    #   "reason": "`invalid k8s object` resource is invalid",
    #   "message": "Invalid Kubernetes object"
-   # }
-```
-
----
-
-
-## Test Title: Adapter can detect and handle resource timeouts to cluster API endpoints
-
-### Description
-
-This test validates that the adapter correctly detects and handles resource timeouts when adapter Jobs exceed configured timeout limits.
-
----
-
-| **Field** | **Value** |
-|-----------|-----------|
-| **Pos/Neg** | Negative |
-| **Priority** | Tier2 |
-| **Status** | Draft |
-| **Automation** | Not Automated |
-| **Version** | MVP |
-| **Created** | 2026-01-30 |
-| **Updated** | 2026-01-30 |
-
-
----
-
-### Preconditions
-1. Environment is prepared using [hyperfleet-infra](https://github.com/openshift-hyperfleet/hyperfleet-infra) with all required platform resources
-2. HyperFleet API and HyperFleet Sentinel services are deployed and running successfully
-
----
-
-### Test Steps
-
-#### Step 1: Configure adapter with timeout setting
-**Action:**
-- Simulate a scenario where the adapter will be stuck
-- Deploy the test adapter
-
-**Expected Result:**
-- Adapter pods are running successfully
-
-#### Step 2: Send POST request to create a new cluster
-**Action:**
-- Execute cluster creation request:
-```bash
-curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
-  -H "Content-Type: application/json" \
-  -d <cluster_create_payload>
-```
-
-**Expected Result:**
-- API returns successful response
-
-#### Step 3: Wait for timeout and Verify Timeout Handling
-**Action:**
-- Wait for some minutes
-- Verify adapter status
-
-**Expected Result:**
-```bash
-   curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/<cluster_id>/statuses \
-     | jq -r '.items[] | select(.adapter=="<adapter_name>") | .conditions[] | select(.type=="Available")'
-
-   # Example:
-   # {
-   #   "type": "Available",
-   #   "status": "False",
-   #   "reason": "JobTimeout",
-   #   "message": "Validation job did not complete within 30 seconds"
    # }
 ```
 

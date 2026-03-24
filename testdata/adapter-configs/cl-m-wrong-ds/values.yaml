@@ -1,0 +1,33 @@
+adapterConfig:
+  create: true
+  files:
+    adapter-config.yaml: cl-m-wrong-ds/adapter-config.yaml
+  log:
+    level: debug
+
+adapterTaskConfig:
+  create: true
+  files:
+    task-config.yaml: cl-m-wrong-ds/adapter-task-config.yaml
+
+broker:
+  create: true
+  googlepubsub:
+    projectId: ${GCP_PROJECT_ID}
+    subscriptionId: ${NAMESPACE}-clusters-${ADAPTER_NAME}
+    topic: ${NAMESPACE}-clusters
+    deadLetterTopic: ${NAMESPACE}-clusters-dlq
+    createTopicIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}
+    createSubscriptionIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}
+
+image:
+  registry: ${IMAGE_REGISTRY}
+  repository: ci/hyperfleet-adapter
+  pullPolicy: Always
+  tag: latest
+
+rbac:
+   resources:
+     - namespaces
+     - configmaps
+     - configmaps/status

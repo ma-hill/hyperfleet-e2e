@@ -6,7 +6,10 @@
 2. [Adapter can skip ManifestWork operation when generation is unchanged](#test-title-adapter-can-skip-manifestwork-operation-when-generation-is-unchanged)
 3. [Adapter can route ManifestWork to correct consumer based on targetCluster](#test-title-adapter-can-route-manifestwork-to-correct-consumer-based-on-targetcluster)
 4. [Adapter can handle Maestro server unavailability gracefully](#test-title-adapter-can-handle-maestro-server-unavailability-gracefully)
-5. [Adapter can handle invalid targetCluster (consumer not found) gracefully](#test-title-adapter-can-handle-invalid-targetcluster-consumer-not-found-gracefully)
+5. [ManifestWork apply fails when targeting unregistered consumer](#test-title-manifestwork-apply-fails-when-targeting-unregistered-consumer)
+6. [Main discovery fails when ManifestWork name is wrong](#test-title-main-discovery-fails-when-manifestwork-name-is-wrong)
+7. [Nested discovery returns empty when criteria match nothing in manifests](#test-title-nested-discovery-returns-empty-when-criteria-match-nothing-in-manifests)
+8. [Post-action fails when status API is unreachable or returns error](#test-title-post-action-fails-when-status-api-is-unreachable-or-returns-error)
 
 ---
 
@@ -542,7 +545,7 @@ This test validates the adapter's behavior when the Maestro server is unreachabl
 | **Field** | **Value** |
 |-----------|-----------|
 | **Pos/Neg** | Negative |
-| **Priority** | Tier1 |
+| **Priority** | Tier2 |
 | **Status** | Draft |
 | **Automation** | Not Automated |
 | **Version** | MVP |
@@ -675,11 +678,11 @@ kubectl get pods -n maestro --no-headers
 
 ---
 
-## Test Title: Adapter can handle invalid targetCluster (consumer not found) gracefully
+## Test Title: ManifestWork apply fails when targeting unregistered consumer
 
 ### Description
 
-This test validates the adapter's behavior when the configured `targetCluster` resolves to a Maestro consumer that does not exist. The adapter should detect the error, report it properly, and not crash.
+This test validates the adapter's behavior when a cluster event targets a Maestro consumer that is not registered. The ManifestWork apply operation should fail with "not registered in Maestro" error, and the adapter should report appropriate failure status via the Health condition without crashing.
 
 ---
 
@@ -688,7 +691,7 @@ This test validates the adapter's behavior when the configured `targetCluster` r
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | MVP |
 | **Created** | 2026-02-12 |
 | **Updated** | 2026-02-26 |
@@ -697,41 +700,86 @@ This test validates the adapter's behavior when the configured `targetCluster` r
 
 ### Preconditions
 
-1. HyperFleet environment deployed with Maestro transport adapter
-2. Maestro server is accessible
-3. Adapter task config backup saved for restoration after test
+1. HyperFleet API, Sentinel, and Maestro are deployed and running successfully
+2. Adapter is deployed in Maestro transport mode (`transport.client: "maestro"`)
+3. Adapter task config is configured to target a consumer named "unregistered-consumer" which does NOT exist in Maestro
+4. At least one valid Maestro consumer exists for comparison (e.g., `cluster1`)
+5. **Option 1**: Use the pre-configured adapter config: `testdata/adapter-configs/cl-m-unreg-consumer/`
+6. **Option 2**: Temporarily modify an existing adapter's task config to point to "unregistered-consumer"
 
 ---
 
 ### Test Steps
 
-#### Step 1: Backup and modify adapter task config to target a non-existent consumer
+#### Step 1: Verify Maestro is healthy and "unregistered-consumer" does not exist
 **Action:**
 ```bash
+# Verify Maestro is running
+kubectl get pods -n maestro -l app=maestro --no-headers
+
+# List all registered consumers to confirm "unregistered-consumer" is NOT present
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/consumers \
+  | jq '.items[].name'
+```
+
+**Expected Result:**
+- Maestro pod is `Running`
+- "unregistered-consumer" does NOT appear in the consumer list
+- Other consumers (e.g., "cluster1") exist for comparison
+
+#### Step 2: Deploy or verify adapter with unregistered consumer configuration
+**Action:**
+
+**Option A: Using pre-configured adapter (recommended)**
+```bash
+export ADAPTER_NAME='cl-m-unreg-consumer'
+
+# Deploy the adapter using the pre-configured adapter config
+      - name: "placementClusterName"
+        expression: "\"unregistered-consumer\""  # Points to non-existent consumer to test apply failure
+# Use helm install cmd to deploy
+ helm install {release_name} {adapter_charts_folder} --namespace {namespace_name} --create-namespace  -f testdata/adapter-configs/cl-m-unreg-consumer/values.yaml
+```
+
+**Option B: Modify existing adapter config**
+```bash
+export ADAPTER_NAME='test-adapter'  # or your existing adapter name
+
 # Backup original config
 kubectl get configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
-  -o jsonpath='{.data.task-config\.yaml}' > /tmp/adapter2-task-original.yaml
+  -o jsonpath='{.data.task-config\.yaml}' > /tmp/adapter-task-backup.yaml
 
-# Modify: change placementClusterName from "${MAESTRO_CONSUMER}" to "non-existent-cluster"
-# In the task config, change:
-#   expression: "\"${MAESTRO_CONSUMER}\""
+# Modify task config: change placementClusterName to "unregistered-consumer"
+# Edit the file to change:
+#   expression: "\"cluster1\""
 # To:
-#   expression: "\"non-existent-cluster\""
+#   expression: "\"unregistered-consumer\""
 
 # Apply modified config
 kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
-  --from-file=task-config.yaml=/tmp/adapter2-task-modified.yaml \
+  --from-file=task-config.yaml=/tmp/adapter-task-modified.yaml \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Restart adapter
+# Restart adapter to pick up new config
 kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
 kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
 ```
 
 **Expected Result:**
-- Adapter restarts with `placementClusterName` = `"non-existent-cluster"`
+- Adapter pod restarts successfully
+- Adapter task config now targets "unregistered-consumer"
 
-#### Step 2: Create a cluster to trigger adapter processing
+#### Step 3: Verify adapter is running and ready
+**Action:**
+```bash
+kubectl get pods -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --no-headers
+```
+
+**Expected Result:**
+- Adapter pod is `Running` with `1/1 Ready`
+
+#### Step 4: Create a cluster to trigger adapter processing
 **Action:**
 ```bash
 CLUSTER_ID=$(curl -s -X POST ${API_URL}/api/hyperfleet/v1/clusters \
@@ -749,50 +797,785 @@ echo "CLUSTER_ID=${CLUSTER_ID}"
 
 **Expected Result:**
 - API returns HTTP 201 with a valid cluster ID
+- Cluster has `generation: 1`
 
-#### Step 3: Verify error handling for invalid consumer (check logs after ~15 seconds)
+#### Step 5: Verify error status reported to HyperFleet API
 **Action:**
 ```bash
-kubectl logs -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --tail=30 \
-  | grep -E "FAILED|error|non-existent" | head -5
+curl -s ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}/statuses \
+  | jq '.items[] | select(.adapter == "'"${ADAPTER_NAME}"'")'
 ```
 
 **Expected Result:**
-- Adapter logs show error related to consumer not found
-- Error message includes the invalid consumer name
-- Adapter does NOT crash
+- Adapter status entry exists with `adapter: "${ADAPTER_NAME}"`
+- `observed_generation: 1` (adapter processed the event)
+- `last_report_time` is present and recent
+- **Condition validation**:
+  - `Applied: False` - ManifestWork was not created (consumer not registered)
+  - `Available: False` - Resources not available (ManifestWork not applied)
+  - `Health: False` - Adapter execution failed at ResourceFailed phase
+    - Health reason: `ExecutionFailed:ResourceFailed`
+    - Health message contains: "consumer \"xxxxxx\" is not registered in Maestro"
 
-#### Step 4: Verify adapter pod is still running (no crash)
+
+#### Step 6: Verify no ManifestWork was created on Maestro
+**Action:**
+```bash
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles \
+  | jq '.items[] | select(.metadata.labels["hyperfleet.io/cluster-id"] == "'"${CLUSTER_ID}"'")'
+```
+
+**Expected Result:**
+- No resource bundle (ManifestWork) exists for the cluster ID
+- Query returns empty result or null
+- This confirms the apply operation failed before creating the ManifestWork
+
+#### Step 7: Verify no Kubernetes resources were created
+**Action:**
+```bash
+# Attempt to find namespace that would have been created
+kubectl get ns | grep ${CLUSTER_ID}
+```
+
+**Expected Result:**
+- No namespace exists with the cluster ID
+- This confirms that Maestro agent did not apply any resources (because ManifestWork was never created)
+
+#### Step 8: Cleanup
+**Action:**
+
+**If using Option A (pre-configured adapter):**
+```bash
+# Delete the test adapter deployment
+helm uninstall {release_name} -n {namespace}
+
+# Note: Cluster will remain in API until DELETE endpoint is available
+```
+
+**If using Option B (modified existing adapter):**
+```bash
+# Restore original adapter config
+kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  --from-file=task-config.yaml=/tmp/adapter-task-backup.yaml \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart adapter with restored config
+kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
+kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
+
+echo "Adapter config restored successfully"
+```
+
+> **Note:** Once the HyperFleet API supports DELETE operations for clusters, this step should be added with:
+> ```bash
+> curl -X DELETE ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}
+> ```
+
+---
+
+## Test Title: Main discovery fails when ManifestWork name is wrong
+
+### Description
+
+This test validates the adapter's behavior when the main discovery configuration uses the wrong ManifestWork name. The adapter creates a ManifestWork on Maestro with the correct name, but then tries to discover it using a wrong name (with `-wrong` suffix). This simulates a misconfiguration where the discovery name doesn't match the created resource name. The adapter should fail at the discovery phase and report the error appropriately.
+
+---
+
+| **Field** | **Value** |
+|-----------|-----------|
+| **Pos/Neg** | Negative |
+| **Priority** | Tier1 |
+| **Status** | Draft |
+| **Automation** | Automated |
+| **Version** | MVP |
+| **Created** | 2026-03-20 |
+| **Updated** | 2026-03-20 |
+
+---
+
+### Preconditions
+
+1. HyperFleet API, Sentinel, and Maestro are deployed and running successfully
+2. At least one Maestro consumer is registered (e.g., `cluster1`)
+3. Adapter is deployed in Maestro transport mode
+4. Adapter task config has discovery names that DO NOT match the actual resource names created
+5. **Option 1**: Use the pre-configured adapter config: `testdata/adapter-configs/cl-m-wrong-ds/`
+6. **Option 2**: Temporarily modify an existing adapter's task config discovery names to be incorrect
+
+---
+
+### Test Steps
+
+#### Step 1: Verify Maestro is healthy and consumer is registered
+**Action:**
+```bash
+# Verify Maestro is running
+kubectl get pods -n maestro -l app=maestro --no-headers
+
+# Verify consumer exists
+export MAESTRO_CONSUMER='cluster1'  # or your registered consumer
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/consumers \
+  | jq -r '.items[] | select(.name == "'"${MAESTRO_CONSUMER}"'") | .name'
+```
+
+**Expected Result:**
+- Maestro pod is `Running`
+- Consumer `${MAESTRO_CONSUMER}` exists
+
+#### Step 2: Deploy or verify adapter with wrong discovery configuration
+**Action:**
+
+**Option A: Using pre-configured adapter (recommended)**
+```bash
+export ADAPTER_NAME='cl-m-wrong-ds'
+
+# Deploy the test adapter deployment
+ helm install {release_name} {adapter_charts_folder} --namespace {namespace_name} --create-namespace  -f testdata/adapter-configs/cl-m-wrong-ds/values.yaml
+
+OR
+
+# Deploy the adapter using the pre-configured adapter config supported in hyperfleet-infra
+# The config has discovery names with "-wrong" suffix that don't match actual resources
+make install-adapter-custom ADAPTER_CONFIG_PATH=testdata/adapter-configs/cl-m-wrong-ds
+```
+
+**Option B: Modify existing adapter config**
+```bash
+export ADAPTER_NAME='cl-maestro'  # or your existing adapter name
+
+# Backup original config
+kubectl get configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  -o jsonpath='{.data.task-config\.yaml}' > /tmp/adapter-task-backup.yaml
+
+# Modify task config nested_discoveries section:
+# Change:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-namespace"
+# To:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-namespace-wrong"
+# And:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-configmap"
+# To:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-configmap-wrong"
+
+# Apply modified config
+kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  --from-file=task-config.yaml=/tmp/adapter-task-modified.yaml \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart adapter to pick up new config
+kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
+kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
+```
+
+**Expected Result:**
+- Adapter pod restarts successfully
+- Adapter task config now has wrong discovery names (with "-wrong" suffix)
+
+#### Step 3: Verify adapter is running
 **Action:**
 ```bash
 kubectl get pods -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --no-headers
 ```
 
 **Expected Result:**
-- Pod is `Running` with 0 restarts
+- Adapter pod is `Running` with `1/1 Ready`
 
-#### Step 5: Verify error status reported to API
+#### Step 4: Create a cluster to trigger adapter processing
 **Action:**
 ```bash
-curl -s ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}/statuses \
-  | jq '.items[] | select(.adapter == "'"${ADAPTER_NAME}"'") | .conditions'
+export API_URL='http://localhost:8000'  # Adjust if different
+
+CLUSTER_ID=$(curl -s -X POST ${API_URL}/api/hyperfleet/v1/clusters \
+  -H "Content-Type: application/json" \
+  -d '{
+    "kind": "Cluster",
+    "name": "maestro-discovery-fail-'$(date +%Y%m%d-%H%M%S)'",
+    "spec": {
+      "platform": {
+        "type": "gcp",
+        "gcp": {"projectID": "test-project", "region": "us-central1"}
+      },
+      "release": {"version": "4.14.0"}
+    }
+  }' | jq -r '.id')
+echo "CLUSTER_ID=${CLUSTER_ID}"
 ```
 
 **Expected Result:**
-- Health: `status: "False"`, error message should contain key points like `non-existent-cluster` or `consumer` not found
-- Applied: `status: "False"`
+- API returns HTTP 201 with a valid cluster ID
+- Cluster has `generation: 1`
 
-#### Step 6: Restore and cleanup
+#### Step 5: Verify ManifestWork was created successfully on Maestro
 **Action:**
 ```bash
-# Restore original config
+# Wait for ManifestWork creation
+sleep 10
+
+# Capture resource bundle ID
+RESOURCE_BUNDLE_ID=$(kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles \
+  | jq -r --arg cid "${CLUSTER_ID}" \
+    '.items[] | select(.metadata.labels["hyperfleet.io/cluster-id"] == $cid) | .id')
+echo "RESOURCE_BUNDLE_ID=${RESOURCE_BUNDLE_ID}"
+
+# Display resource bundle details
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID} \
+  | jq '{id: .id, consumer_name: .consumer_name, version: .version,
+       manifest_names: [.manifests[].metadata.name]}'
+```
+
+**Expected Result:**
+- ManifestWork (resource bundle) was created successfully
+- Resource bundle has correct consumer name (e.g., `cluster1`)
+- Manifests include namespace and configmap with correct actual names:
+  - `${CLUSTER_ID}-${ADAPTER_NAME}-namespace`
+  - `${CLUSTER_ID}-${ADAPTER_NAME}-configmap`
+
+#### Step 6: Verify Kubernetes resources were created by Maestro agent
+**Action:**
+```bash
+# Wait for Maestro agent to apply resources
+sleep 15
+
+# Verify namespace exists
+kubectl get ns | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+
+# Verify configmap exists
+kubectl get configmap -n ${CLUSTER_ID}-${ADAPTER_NAME}-namespace | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+```
+
+**Expected Result:**
+- Namespace `${CLUSTER_ID}-${ADAPTER_NAME}-namespace` exists and is `Active`
+- ConfigMap `${CLUSTER_ID}-${ADAPTER_NAME}-configmap` exists in the namespace
+- Resources were successfully applied by Maestro agent
+
+#### Step 7: Verify error status reported to HyperFleet API
+**Action:**
+```bash
+curl -s ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}/statuses \
+  | jq '.items[] | select(.adapter == "'"${ADAPTER_NAME}"'")'
+```
+
+**Expected Result:**
+- Adapter status entry exists with `adapter: "${ADAPTER_NAME}"`
+- `observed_generation: 1` (adapter processed the event)
+- `last_report_time` is present and recent
+- **Condition validation**:
+  - `Applied: False` - ManifestWork not discovered (main discovery failed)
+    - Reason: `ManifestWorkNotDiscovered`
+  - `Available: False` - Resources not available (ManifestWork not found)
+    - Reason: `NamespaceNotDiscovered`
+  - `Health: False` - Adapter execution failed
+    - Reason: `ExecutionFailed:ResourceFailed`
+    - Message contains: "failed to discover resource after apply: manifestworks...not found"
+- **Data validation**:
+  - `data.manifestwork.name` is empty (main discovery failed)
+  - `data.namespace.name` is empty (cannot discover nested resources)
+  - `data.configmap.name` is empty (cannot discover nested resources)
+
+#### Step 8: Verify ManifestWork was created but cannot be discovered
+**Action:**
+```bash
+# Search for ManifestWork with correct name (without -wrong suffix)
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles \
+  | jq '.items[] | select(.metadata.labels["hyperfleet.io/cluster-id"] == "'"${CLUSTER_ID}"'")'
+
+# Try to find ManifestWork with wrong name (what adapter is looking for)
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s "http://localhost:8000/api/maestro/v1/resource-bundles/${CLUSTER_ID}-${ADAPTER_NAME}-wrong"
+```
+
+**Expected Result:**
+- ManifestWork with correct name `${CLUSTER_ID}-${ADAPTER_NAME}` exists on Maestro
+- ManifestWork with wrong name `${CLUSTER_ID}-${ADAPTER_NAME}-wrong` does NOT exist (404)
+- Adapter created the ManifestWork correctly but cannot discover it due to wrong discovery name
+- K8s resources (namespace, configmap) were created by Maestro agent
+
+#### Step 9: Cleanup
+**Action:**
+
+**Common cleanup steps:**
+```bash
+# Delete the resource bundle on Maestro (triggers agent to clean up K8s resources)
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s -X DELETE http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID}
+
+# Delete namespace as safety cleanup
+kubectl delete ns ${CLUSTER_ID}-${ADAPTER_NAME}-namespace --ignore-not-found
+
+# Wait for cleanup
+sleep 5
+```
+> **Note:** Once the HyperFleet API supports DELETE operations for clusters, it can be replaced via this cleanup step:
+> ```bash
+> curl -X DELETE ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}
+> ```
+
+**If using Option A (pre-configured adapter):**
+```bash
+# Delete the test adapter deployment
+helm uninstall hyperfleet-${ADAPTER_NAME} -n hyperfleet
+
+# Or using make target supported in hyperfleet-infra
+make uninstall-adapter ADAPTER_NAME=cl-maestro-wrong-discovery 
+```
+
+**If using Option B (modified existing adapter):**
+```bash
+# Restore original adapter config
 kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
-  --from-file=task-config.yaml=/tmp/adapter2-task-original.yaml \
+  --from-file=task-config.yaml=/tmp/adapter-task-backup.yaml \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# Restart adapter with restored config
+kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
+kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
+
+echo "Adapter config restored successfully"
+```
+---
+
+## Test Title: Nested discovery returns empty when criteria match nothing in manifests
+
+### Description
+
+This test validates the adapter's behavior when a ManifestWork is successfully created and discovered, but the nested discovery criteria match nothing in the `spec.workload.manifests` array. The ManifestWork apply and primary discovery succeed, but nested discovery returns empty results. This is not a hard failure - it's logged as debug information, and CEL expressions using `orValue("")` fallbacks handle the missing data gracefully. The adapter reports status with conditions showing pending/unknown state due to unavailable nested resource data.
+
+---
+
+| **Field** | **Value** |
+|-----------|-----------|
+| **Pos/Neg** | Negative |
+| **Priority** | Tier1 |
+| **Status** | Draft |
+| **Automation** | Automated |
+| **Version** | MVP |
+| **Created** | 2026-03-20 |
+| **Updated** | 2026-03-20 |
+
+---
+
+### Preconditions
+
+1. HyperFleet API, Sentinel, and Maestro are deployed and running successfully
+2. At least one Maestro consumer is registered (e.g., `cluster1`)
+3. Adapter is deployed in Maestro transport mode
+4. Adapter task config has nested discovery criteria that look for resources NOT present in the ManifestWork manifests
+5. **Option 1**: Use the pre-configured adapter config: `testdata/adapter-configs/cl-m-wrong-nest/`
+6. **Option 2**: Temporarily modify an existing adapter's task config to have mismatched nested discovery criteria
+
+---
+
+### Test Steps
+
+#### Step 1: Verify Maestro is healthy and consumer is registered
+**Action:**
+```bash
+# Verify Maestro is running
+kubectl get pods -n maestro -l app=maestro --no-headers
+
+# Verify consumer exists
+export MAESTRO_CONSUMER='cluster1'  # or your registered consumer
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/consumers \
+  | jq -r '.items[] | select(.name == "'"${MAESTRO_CONSUMER}"'") | .name'
+```
+
+**Expected Result:**
+- Maestro pod is `Running`
+- Consumer `${MAESTRO_CONSUMER}` exists
+
+#### Step 2: Deploy or verify adapter with empty nested discovery configuration
+**Action:**
+
+**Option A: Using pre-configured adapter (recommended)**
+```bash
+export ADAPTER_NAME='cl-m-wrong-nest'
+
+# Deploy the test adapter deployment
+helm install {release_name} {adapter_charts_folder} --namespace {namespace_name} --create-namespace -f testdata/adapter-configs/cl-m-wrong-nest/values.yaml
+
+# OR using make target supported in hyperfleet-infra
+make install-adapter-custom ADAPTER_CONFIG_PATH=testdata/adapter-configs/cl-m-wrong-nest
+```
+
+**Option B: Modify existing adapter config**
+```bash
+export ADAPTER_NAME='cl-maestro'  # or your existing adapter name
+
+# Backup original config
+kubectl get configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  -o jsonpath='{.data.task-config\.yaml}' > /tmp/adapter-task-backup.yaml
+
+# Modify task config nested_discoveries section to look for non-existent resources:
+# Change:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-namespace"
+# To:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-deployment"
+# And:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-configmap"
+# To:
+#   by_name: "{{ .clusterId | lower }}-{{ .adapter.name }}-service"
+
+# Apply modified config
+kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  --from-file=task-config.yaml=/tmp/adapter-task-modified.yaml \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart adapter to pick up new config
 kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
 kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
 ```
 
-> **Important:** Always restore the adapter config after this test to avoid impacting other tests.
+**Expected Result:**
+- Adapter pod restarts successfully
+- Adapter task config now has nested discovery criteria that won't match any manifests
+
+#### Step 3: Verify adapter is running
+**Action:**
+```bash
+kubectl get pods -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --no-headers
+```
+
+**Expected Result:**
+- Adapter pod is `Running` with `1/1 Ready`
+
+#### Step 4: Create a cluster to trigger adapter processing
+**Action:**
+```bash
+export API_URL='http://localhost:8000'  # Adjust if different
+
+CLUSTER_ID=$(curl -s -X POST ${API_URL}/api/hyperfleet/v1/clusters \
+  -H "Content-Type: application/json" \
+  -d '{
+    "kind": "Cluster",
+    "name": "maestro-empty-discovery-'$(date +%Y%m%d-%H%M%S)'",
+    "spec": {
+      "platform": {
+        "type": "gcp",
+        "gcp": {"projectID": "test-project", "region": "us-central1"}
+      },
+      "release": {"version": "4.14.0"}
+    }
+  }' | jq -r '.id')
+echo "CLUSTER_ID=${CLUSTER_ID}"
+```
+
+**Expected Result:**
+- API returns HTTP 201 with a valid cluster ID
+- Cluster has `generation: 1`
+
+#### Step 5: Verify ManifestWork was created successfully on Maestro
+**Action:**
+```bash
+# Wait for ManifestWork creation
+sleep 10
+
+# Capture resource bundle ID
+RESOURCE_BUNDLE_ID=$(kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles \
+  | jq -r --arg cid "${CLUSTER_ID}" \
+    '.items[] | select(.metadata.labels["hyperfleet.io/cluster-id"] == $cid) | .id')
+echo "RESOURCE_BUNDLE_ID=${RESOURCE_BUNDLE_ID}"
+
+# Display resource bundle details
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID} \
+  | jq '{id: .id, consumer_name: .consumer_name, version: .version,
+       manifest_names: [.manifests[].metadata.name]}'
+```
+
+**Expected Result:**
+- ManifestWork (resource bundle) was created successfully
+- Resource bundle has correct consumer name (e.g., `cluster1`)
+- Manifests include the actual resources (namespace and configmap):
+  - `${CLUSTER_ID}-${ADAPTER_NAME}-namespace`
+  - `${CLUSTER_ID}-${ADAPTER_NAME}-configmap`
+- Note: Nested discovery is looking for deployment and service which don't exist
+
+#### Step 6: Verify Kubernetes resources were created by Maestro agent
+**Action:**
+```bash
+# Wait for Maestro agent to apply resources
+sleep 15
+
+# Verify namespace exists
+kubectl get ns | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+
+# Verify configmap exists
+kubectl get configmap -n ${CLUSTER_ID}-${ADAPTER_NAME}-namespace | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+```
+
+**Expected Result:**
+- Namespace `${CLUSTER_ID}-${ADAPTER_NAME}-namespace` exists and is `Active`
+- ConfigMap `${CLUSTER_ID}-${ADAPTER_NAME}-configmap` exists in the namespace
+- Resources were successfully applied by Maestro agent
+
+#### Step 7: Verify status reported with pending/unknown conditions
+**Action:**
+```bash
+curl -s ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}/statuses \
+  | jq '.items[] | select(.adapter == "'"${ADAPTER_NAME}"'")'
+```
+
+**Expected Result:**
+- Adapter status entry exists with `adapter: "${ADAPTER_NAME}"`
+- `observed_generation: 1` (adapter processed the event)
+- `last_report_time` is present and recent
+- **Condition validation**:
+  - `Applied: True` with `reason: "AppliedManifestWorkComplete"` - ManifestWork was created successfully
+  - `Available: False` with `reason: "NamespaceNotDiscovered"` - Nested resources not discovered
+  - `Health: True` with `reason: "Healthy"` - Adapter executed successfully (nested discovery failure doesn't affect health)
+- **Data field validation**:
+  - `manifestwork.name`: `"${CLUSTER_ID}-${ADAPTER_NAME}"` (main discovery succeeded)
+  - `namespace.name`: `""` (empty - nested discovery failed)
+  - `namespace.phase`: `"Unknown"` (nested discovery failed)
+  - `configmap.name`: `""` (empty - nested discovery failed)
+
+
+#### Step 8: Verify ManifestWork and actual resources exist
+**Action:**
+```bash
+# Verify ManifestWork exists on Maestro
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID} \
+  | jq '{id: .id, version: .version, manifests: [.manifests[].metadata.name]}'
+
+# Verify actual K8s resources exist (namespace and configmap)
+kubectl get ns ${CLUSTER_ID}-${ADAPTER_NAME}-namespace
+kubectl get configmap ${CLUSTER_ID}-${ADAPTER_NAME}-configmap \
+  -n ${CLUSTER_ID}-${ADAPTER_NAME}-namespace
+```
+
+**Expected Result:**
+- ManifestWork exists with correct manifests (namespace and configmap)
+- Kubernetes namespace and configmap exist and are functional
+- Nested discovery failure doesn't affect the actual resources
+
+#### Step 9: Cleanup
+**Action:**
+
+**Common cleanup steps:**
+```bash
+# Delete the resource bundle on Maestro (triggers agent to clean up K8s resources)
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s -X DELETE http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID}
+
+# Delete namespace as safety cleanup
+kubectl delete ns ${CLUSTER_ID}-${ADAPTER_NAME}-namespace --ignore-not-found
+
+# Wait for cleanup
+sleep 5
+```
+
+> **Note:** Once the HyperFleet API supports DELETE operations for clusters, it can be replaced via this cleanup step:
+> ```bash
+> curl -X DELETE ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}
+> ```
+
+**If using Option A (pre-configured adapter):**
+```bash
+# Delete the test adapter deployment
+helm uninstall hyperfleet-${ADAPTER_NAME} -n hyperfleet
+
+# Or using make target supported in hyperfleet-infra
+make uninstall-adapter ADAPTER_NAME=cl-m-wrong-nest
+```
+
+**If using Option B (modified existing adapter):**
+```bash
+# Restore original adapter config
+kubectl create configmap hyperfleet-${ADAPTER_NAME}-task -n hyperfleet \
+  --from-file=task-config.yaml=/tmp/adapter-task-backup.yaml \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart adapter with restored config
+kubectl rollout restart deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet
+kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
+
+echo "Adapter config restored successfully"
+```
+
+---
+
+## Test Title: Post-action fails when status API is unreachable or returns error
+
+### Description
+
+This test validates the adapter's behavior when ManifestWork creation and discovery succeed, but the POST to `/clusters/{clusterId}/statuses` endpoint fails (returns 500 error or is unreachable). The adapter should handle the API failure gracefully, record the post-action failure in execution metadata, log the error appropriately, and continue running without crashing.
+
+---
+
+| **Field** | **Value** |
+|-----------|-----------|
+| **Pos/Neg** | Negative |
+| **Priority** | Tier1 |
+| **Status** | Draft |
+| **Automation** | Automated |
+| **Version** | MVP |
+| **Created** | 2026-03-20 |
+| **Updated** | 2026-03-20 |
+
+---
+
+### Preconditions
+
+1. HyperFleet API, Sentinel, and Maestro are deployed and running successfully
+2. At least one Maestro consumer is registered (e.g., `cluster1`)
+3. Pre-configured test adapter available: `testdata/adapter-configs/cl-m-bad-api/`
+   - This adapter has an invalid API URL configured to simulate unreachable API
+   - Clean approach that doesn't affect test environment or existing adapters
+
+---
+
+### Test Steps
+
+#### Step 1: Deploy test adapter with invalid API URL
+**Action:**
+```bash
+export ADAPTER_NAME='cl-m-bad-api'
+
+# Deploy the test adapter with pre-configured invalid API URL
+# This adapter will successfully connect to Maestro but fail when POSTing to status API
+helm install hyperfleet-${ADAPTER_NAME} {adapter_charts_folder} \
+  --namespace hyperfleet \
+  --create-namespace \
+  -f testdata/adapter-configs/cl-m-bad-api/values.yaml
+
+# OR using make target supported in hyperfleet-infra
+make install-adapter-custom ADAPTER_CONFIG_PATH=testdata/adapter-configs/cl-m-bad-api
+
+# Wait for adapter to be ready
+kubectl rollout status deployment/hyperfleet-${ADAPTER_NAME} -n hyperfleet --timeout=60s
+
+# Verify adapter is running
+kubectl get pods -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --no-headers
+```
+
+**Expected Result:**
+- Test adapter pod is `Running` with `1/1 Ready`
+- Adapter is configured with invalid API URL: `http://invalid-hyperfleet-api-endpoint.local:9999`
+
+#### Step 2: Create a cluster to trigger adapter processing
+**Action:**
+```bash
+export API_URL='http://localhost:8000'  # Adjust if different
+
+CLUSTER_ID=$(curl -s -X POST ${API_URL}/api/hyperfleet/v1/clusters \
+  -H "Content-Type: application/json" \
+  -d '{
+    "kind": "Cluster",
+    "name": "maestro-api-fail-test-'$(date +%Y%m%d-%H%M%S)'",
+    "spec": {
+      "platform": {
+        "type": "gcp",
+        "gcp": {"projectID": "test-project", "region": "us-central1"}
+      },
+      "release": {"version": "4.14.0"}
+    }
+  }' | jq -r '.id')
+echo "CLUSTER_ID=${CLUSTER_ID}"
+```
+
+**Expected Result:**
+- API returns HTTP 201 with a valid cluster ID
+- Cluster has `generation: 1`
+
+#### Step 3: Verify ManifestWork was created successfully despite API failure
+**Action:**
+```bash
+# Capture resource bundle ID
+RESOURCE_BUNDLE_ID=$(kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles \
+  | jq -r --arg cid "${CLUSTER_ID}" \
+    '.items[] | select(.metadata.labels["hyperfleet.io/cluster-id"] == $cid) | .id')
+echo "RESOURCE_BUNDLE_ID=${RESOURCE_BUNDLE_ID}"
+
+# Display resource bundle details
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID} \
+  | jq '{id: .id, consumer_name: .consumer_name, version: .version,
+       manifest_names: [.manifests[].metadata.name]}'
+```
+
+**Expected Result:**
+- ManifestWork (resource bundle) was created successfully on Maestro
+
+#### Step 4: Verify Kubernetes resources were created by Maestro agent
+**Action:**
+```bash
+# Wait for Maestro agent to apply resources
+sleep 15
+
+# Verify namespace exists
+kubectl get ns | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+
+# Verify configmap exists
+kubectl get configmap -n ${CLUSTER_ID}-${ADAPTER_NAME}-namespace | grep ${CLUSTER_ID}-${ADAPTER_NAME}
+```
+
+**Expected Result:**
+- Namespace `${CLUSTER_ID}-${ADAPTER_NAME}-namespace` exists and is `Active`
+- ConfigMap `${CLUSTER_ID}-${ADAPTER_NAME}-configmap` exists
+- Resources were successfully applied despite post-action failure
+
+#### Step 5: Verify post-action failure via indirect evidence (beyond logs)
+**Action:**
+```bash
+# Method: Check ManifestWork status in Maestro (should be healthy)
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID} \
+  | jq '{
+      id: .id,
+      status: .status,
+      conditions: [.status.conditions[] | {type: .type, status: .status}]
+    }'
+```
+**Expected Result:**
+- **ManifestWork in Maestro:**
+  - Status shows `Applied` and `Available` conditions are `True` (from Maestro agent's perspective)
+  - This confirms apply and discovery phases succeeded
+
+#### Step 6: Verify no status was reported to API (expected behavior)
+**Action:**
+```bash
+# Since the adapter has invalid API URL, status should NOT be in the API
+curl -s ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}/statuses \
+  | jq '.items[] | select(.adapter == "'"${ADAPTER_NAME}"'")'
+```
+
+**Expected Result:**
+- No status entry for this adapter (empty result)
+- This confirms that POST to /statuses failed as expected
+
+#### Step 9: Cleanup
+**Action:**
+```bash
+# Delete the resource bundle on Maestro
+kubectl exec -n maestro deployment/maestro -- \
+  curl -s -X DELETE http://localhost:8000/api/maestro/v1/resource-bundles/${RESOURCE_BUNDLE_ID}
+
+# Delete namespace
+kubectl delete ns ${CLUSTER_ID}-${ADAPTER_NAME}-namespace --ignore-not-found
+
+> **Note:** Once the HyperFleet API supports DELETE operations for clusters, add this cleanup step:
+> ```bash
+> curl -X DELETE ${API_URL}/api/hyperfleet/v1/clusters/${CLUSTER_ID}
+> ```
+
+# Delete the test adapter deployment
+helm uninstall hyperfleet-${ADAPTER_NAME} -n hyperfleet
+
+# OR using make target supported in hyperfleet-infra
+make uninstall-adapter ADAPTER_NAME=cl-m-bad-api
+
+# Verify adapter is deleted
+kubectl get pods -n hyperfleet -l app.kubernetes.io/instance=hyperfleet-${ADAPTER_NAME} --no-headers
+```
+
+---
 
