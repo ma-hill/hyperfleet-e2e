@@ -1,14 +1,14 @@
 adapterConfig:
   create: true
   files:
-    adapter-config.yaml: cl-invalid-resource/adapter-config.yaml
+    adapter-config.yaml: cl-m-wrong-nest/adapter-config.yaml
   log:
     level: debug
 
 adapterTaskConfig:
   create: true
   files:
-    task-config.yaml: cl-invalid-resource/adapter-task-config.yaml
+    task-config.yaml: cl-m-wrong-nest/adapter-task-config.yaml
 
 broker:
   create: true
@@ -25,8 +25,8 @@ image:
   repository: ${ADAPTER_IMAGE_REPO}
   pullPolicy: Always
   tag: ${ADAPTER_IMAGE_TAG}
-
 rbac:
    resources:
      - namespaces
      - configmaps
+     - configmaps/status

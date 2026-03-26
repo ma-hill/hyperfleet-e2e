@@ -98,9 +98,12 @@ type AdaptersConfig struct {
 
 // AdapterDeploymentConfig contains configuration for deploying adapters via Helm in tests.
 type AdapterDeploymentConfig struct {
-	ChartRepo string `yaml:"chartRepo" mapstructure:"chartRepo"`
-	ChartRef  string `yaml:"chartRef" mapstructure:"chartRef"`
-	ChartPath string `yaml:"chartPath" mapstructure:"chartPath"`
+	ChartRepo     string `yaml:"chartRepo" mapstructure:"chartRepo"`
+	ChartRef      string `yaml:"chartRef" mapstructure:"chartRef"`
+	ChartPath     string `yaml:"chartPath" mapstructure:"chartPath"`
+	ImageRegistry string `yaml:"imageRegistry" mapstructure:"imageRegistry"`
+	ImageRepo     string `yaml:"imageRepo" mapstructure:"imageRepo"`
+	ImageTag      string `yaml:"imageTag" mapstructure:"imageTag"`
 }
 
 // Config represents the e2e test configuration
@@ -350,6 +353,23 @@ func (c *Config) applyDefaults() {
 	if c.AdapterDeployment.ChartPath == "" {
 		c.AdapterDeployment.ChartPath = os.Getenv("ADAPTER_CHART_PATH")
 	}
+
+	// ImageRegistry: from config file or IMAGE_REGISTRY env var
+	// If not set, envsubst will use the env var directly (if set in shell)
+	// If still not set, values.yaml defaults will be used
+	if c.AdapterDeployment.ImageRegistry == "" {
+		c.AdapterDeployment.ImageRegistry = os.Getenv("IMAGE_REGISTRY")
+	}
+
+	// ImageRepo: from config file or ADAPTER_IMAGE_REPO env var
+	if c.AdapterDeployment.ImageRepo == "" {
+		c.AdapterDeployment.ImageRepo = os.Getenv("ADAPTER_IMAGE_REPO")
+	}
+
+	// ImageTag: from config file or ADAPTER_IMAGE_TAG env var
+	if c.AdapterDeployment.ImageTag == "" {
+		c.AdapterDeployment.ImageTag = os.Getenv("ADAPTER_IMAGE_TAG")
+	}
 }
 
 // Validate validates configuration with detailed error messages
@@ -385,9 +405,20 @@ func (c *Config) Display() {
 		"adapters_cluster", c.Adapters.Cluster,
 		"adapters_nodepool", c.Adapters.NodePool,
 		"adapter_chart_repo", redactURL(c.AdapterDeployment.ChartRepo),
-		"adapter_chart_ref", c.AdapterDeployment.ChartRef,
-		"adapter_chart_path", c.AdapterDeployment.ChartPath,
+		"adapter_chart_ref", valueOrNotSet(c.AdapterDeployment.ChartRef),
+		"adapter_chart_path", valueOrNotSet(c.AdapterDeployment.ChartPath),
+		"adapter_image_registry", valueOrNotSet(c.AdapterDeployment.ImageRegistry),
+		"adapter_image_repo", valueOrNotSet(c.AdapterDeployment.ImageRepo),
+		"adapter_image_tag", valueOrNotSet(c.AdapterDeployment.ImageTag),
 	)
+}
+
+// valueOrNotSet returns the value if non-empty, otherwise returns NotSetPlaceholder
+func valueOrNotSet(value string) string {
+	if value == "" {
+		return NotSetPlaceholder
+	}
+	return value
 }
 
 // redactURL redacts credentials from URLs

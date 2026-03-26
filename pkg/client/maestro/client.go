@@ -184,6 +184,96 @@ func (c *Client) FindResourceBundleByClusterID(ctx context.Context, clusterID st
 	return nil, fmt.Errorf("no resource bundle found for cluster ID: %s", clusterID)
 }
 
+// FindAllResourceBundlesByClusterID finds all resource bundles for a cluster ID
+// Returns all matching resource bundles (multiple adapters may create ManifestWorks for the same cluster)
+func (c *Client) FindAllResourceBundlesByClusterID(ctx context.Context, clusterID string) ([]ResourceBundle, error) {
+	// Use labelSelector query parameter to filter server-side
+	labelSelector := fmt.Sprintf("%s=%s", client.KeyClusterID, clusterID)
+	apiURL := fmt.Sprintf("%s%s?labelSelector=%s",
+		c.baseURL,
+		resourceBundlesBasePath,
+		url.QueryEscape(labelSelector))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result ResourceBundleList
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter and return all matching resource bundles
+	var bundles []ResourceBundle
+	for i := range result.Items {
+		if result.Items[i].Metadata.Labels != nil &&
+			result.Items[i].Metadata.Labels[client.KeyClusterID] == clusterID {
+			bundles = append(bundles, result.Items[i])
+		}
+	}
+
+	return bundles, nil
+}
+
+// FindResourceBundlesByAdapterName finds all resource bundles created by a specific adapter
+// Uses the maestro.io/source-id label to filter by adapter name
+func (c *Client) FindResourceBundlesByAdapterName(ctx context.Context, adapterName string) ([]ResourceBundle, error) {
+	// Use labelSelector query parameter to filter server-side by adapter source-id
+	labelSelector := fmt.Sprintf("maestro.io/source-id=%s", adapterName)
+	apiURL := fmt.Sprintf("%s%s?labelSelector=%s",
+		c.baseURL,
+		resourceBundlesBasePath,
+		url.QueryEscape(labelSelector))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result ResourceBundleList
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Filter and return all matching resource bundles
+	var bundles []ResourceBundle
+	for i := range result.Items {
+		if result.Items[i].Metadata.Labels != nil &&
+			result.Items[i].Metadata.Labels["maestro.io/source-id"] == adapterName {
+			bundles = append(bundles, result.Items[i])
+		}
+	}
+
+	return bundles, nil
+}
+
 // ListConsumers retrieves the list of registered Maestro consumers
 // Returns a list of consumer names
 func (c *Client) ListConsumers(ctx context.Context) ([]string, error) {

@@ -39,6 +39,7 @@ type AdapterDeploymentOptions struct {
 	ChartPath   string
 	AdapterName string
 	Timeout     time.Duration
+	SetValues   map[string]string // Additional Helm --set values
 }
 
 // GenerateAdapterReleaseName generates a unique Helm release name for an adapter deployment
@@ -151,6 +152,11 @@ func (h *Helper) DeployAdapter(ctx context.Context, opts AdapterDeploymentOption
 	helmArgs = append(helmArgs,
 		"--set", fmt.Sprintf("fullnameOverride=%s", releaseName),
 	)
+
+	// Add additional --set values if provided
+	for key, value := range opts.SetValues {
+		helmArgs = append(helmArgs, "--set", fmt.Sprintf("%s=%s", key, value))
+	}
 
 	logger.Info("executing Helm command", "args", helmArgs)
 
