@@ -22,10 +22,9 @@ broker:
 
 image:
   registry: ${IMAGE_REGISTRY}
-  repository: ci/hyperfleet-adapter
+  repository: ${ADAPTER_IMAGE_REPO}
   pullPolicy: Always
-  tag: latest
-
+  tag: ${ADAPTER_IMAGE_TAG}
 rbac:
    resources:
      - namespaces
