@@ -6,6 +6,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -262,6 +263,44 @@ func HasJobCondition(job *batchv1.Job, condType batchv1.JobConditionType, status
 		}
 	}
 	return false
+}
+
+// ScaleDeployment scales a deployment to the specified number of replicas and waits for the
+// scale operation to be reflected in the deployment's status.
+func (c *Client) ScaleDeployment(ctx context.Context, namespace, name string, replicas int32) error {
+	scale := &autoscalingv1.Scale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: autoscalingv1.ScaleSpec{
+			Replicas: replicas,
+		},
+	}
+
+	_, err := c.AppsV1().Deployments(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to scale deployment %s/%s to %d replicas: %w", namespace, name, replicas, err)
+	}
+
+	// Wait for the scale to be reflected
+	backoff := wait.Backoff{
+		Duration: 1 * time.Second,
+		Factor:   1.5,
+		Jitter:   0.1,
+		Steps:    20,
+		Cap:      10 * time.Second,
+	}
+	return wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		deploy, err := c.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if replicas == 0 {
+			return deploy.Status.AvailableReplicas == 0, nil
+		}
+		return deploy.Status.AvailableReplicas >= replicas, nil
+	})
 }
 
 // HasDeploymentCondition checks if deployment has the specified condition with expected status

@@ -1,0 +1,31 @@
+adapterConfig:
+  create: true
+  files:
+    adapter-config.yaml: cl-crash/adapter-config.yaml
+  log:
+    level: debug
+
+adapterTaskConfig:
+  create: true
+  files:
+    task-config.yaml: cl-crash/adapter-task-config.yaml
+
+broker:
+  create: true
+  googlepubsub:
+    projectId: ${GCP_PROJECT_ID}
+    subscriptionId: ${NAMESPACE}-clusters-${ADAPTER_NAME}
+    topic: ${NAMESPACE}-clusters
+    deadLetterTopic: ${NAMESPACE}-clusters-dlq
+    createTopicIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}
+    createSubscriptionIfMissing: ${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}
+
+image:
+  registry: ${IMAGE_REGISTRY}
+  repository: ${ADAPTER_IMAGE_REPO}
+  pullPolicy: Always
+  tag: ${ADAPTER_IMAGE_TAG}
+
+rbac:
+   resources:
+     - namespaces

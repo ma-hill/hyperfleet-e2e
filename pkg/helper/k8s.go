@@ -163,6 +163,32 @@ func (h *Helper) GetConfigMap(ctx context.Context, namespace, name string) (*cor
 	return cm, nil
 }
 
+// ScaleDeployment scales a deployment to the specified number of replicas.
+func (h *Helper) ScaleDeployment(ctx context.Context, namespace, name string, replicas int32) error {
+	logger.Info("scaling deployment", "namespace", namespace, "name", name, "replicas", replicas)
+
+	if err := h.K8sClient.ScaleDeployment(ctx, namespace, name, replicas); err != nil {
+		return fmt.Errorf("failed to scale deployment %s/%s: %w", namespace, name, err)
+	}
+
+	logger.Info("deployment scaled successfully", "namespace", namespace, "name", name, "replicas", replicas)
+	return nil
+}
+
+// GetDeploymentName finds the deployment name for a Helm release by listing deployments with the release label.
+func (h *Helper) GetDeploymentName(ctx context.Context, namespace, releaseName string) (string, error) {
+	deployments, err := h.K8sClient.FetchDeploymentsByLabels(ctx, namespace, map[string]string{
+		"app.kubernetes.io/instance": releaseName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to find deployment for release %s: %w", releaseName, err)
+	}
+	if len(deployments) == 0 {
+		return "", fmt.Errorf("no deployment found for release %s in namespace %s", releaseName, namespace)
+	}
+	return deployments[0].Name, nil
+}
+
 // verifyMapContains checks if actual map contains all expected key-value pairs
 func verifyMapContains(actual, expected map[string]string, mapType string) error {
     missing := make([]string, 0, len(expected))
