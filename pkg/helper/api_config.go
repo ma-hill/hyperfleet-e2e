@@ -57,7 +57,11 @@ func (h *Helper) RestoreAPIRequiredAdaptersWithRetry(ctx context.Context, apiCha
 			"max_retries", maxRetries,
 			"error", err)
 		if attempt < maxRetries {
-			time.Sleep(10 * time.Second)
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled during API config restore retry: %w", ctx.Err())
+			case <-time.After(10 * time.Second):
+			}
 		}
 	}
 

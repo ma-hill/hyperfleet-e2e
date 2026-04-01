@@ -55,8 +55,9 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reach Correct St
 			}
 			apiChartRef := os.Getenv("API_CHART_REF")
 			if apiChartRef == "" {
-				apiChartRef = h.Cfg.AdapterDeployment.ChartRef // use same ref as adapter (e.g., release-0.2)
+				apiChartRef = h.Cfg.AdapterDeployment.ChartRef
 			}
+			Expect(apiChartRef).NotTo(BeEmpty(), "API_CHART_REF must be set or ADAPTER_CHART_REF must be configured")
 			apiChartPathCfg := os.Getenv("API_CHART_PATH")
 			if apiChartPathCfg == "" {
 				apiChartPathCfg = "charts"

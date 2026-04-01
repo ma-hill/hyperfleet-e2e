@@ -87,7 +87,7 @@ func (c *Client) DeleteNamespaceAndWait(ctx context.Context, namespace string) e
 		Duration: 500 * time.Millisecond,
 		Factor:   1.5,
 		Jitter:   0.1,
-		Steps:    30,                // Increased from 20 to give more time
+		Steps:    30,               // Increased from 20 to give more time
 		Cap:      15 * time.Second, // Increased cap for better handling of stuck resources
 	}
 	err = wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
