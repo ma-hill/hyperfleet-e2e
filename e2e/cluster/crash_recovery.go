@@ -162,30 +162,10 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reach Correct St
 
 				// Step 3: Verify crash-adapter has not reported status and cluster is not Ready
 				ginkgo.By("Verify crash-adapter has not reported status")
-				Eventually(func(g Gomega) {
-					statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
-					g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
-
-					for _, status := range statuses.Items {
-						g.Expect(status.Adapter).NotTo(Equal(adapterName),
-							"crash-adapter should NOT be present in statuses (it is unavailable)")
-					}
-
-					// At least one other adapter should have reported
-					g.Expect(len(statuses.Items)).To(BeNumerically(">", 0),
-						"other adapters should have reported their statuses")
-				}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
+				verifyAdapterAbsent(ctx, h, clusterID, adapterName)
 
 				ginkgo.By("Verify cluster Ready=False due to missing crash-adapter")
-				Consistently(func(g Gomega) {
-					cl, err := h.Client.GetCluster(ctx, clusterID)
-					g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
-					g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
-
-					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
-						"cluster Ready condition should remain False while crash-adapter is unavailable")
-				}, h.Cfg.Polling.Interval*3, h.Cfg.Polling.Interval).Should(Succeed())
+				verifyClusterNotReady(ctx, h, clusterID)
 
 				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter absent, cluster Ready=False\n")
 
@@ -195,52 +175,92 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reach Correct St
 				Expect(err).NotTo(HaveOccurred(), "failed to scale up crash-adapter")
 
 				ginkgo.By("Verify crash-adapter reports correct status after recovery")
-				Eventually(func(g Gomega) {
-					statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
-					g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
-
-					var adapterStatus *openapi.AdapterStatus
-					for i, status := range statuses.Items {
-						if status.Adapter == adapterName {
-							adapterStatus = &statuses.Items[i]
-							break
-						}
-					}
-					g.Expect(adapterStatus).NotTo(BeNil(),
-						"crash-adapter should be present in statuses after recovery")
-
-					g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
-						client.ConditionTypeApplied, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
-						"crash-adapter should have Applied=True after recovery")
-
-					g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
-						client.ConditionTypeAvailable, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
-						"crash-adapter should have Available=True after recovery")
-
-					g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
-						client.ConditionTypeHealth, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
-						"crash-adapter should have Health=True after recovery")
-
-					g.Expect(adapterStatus.ObservedGeneration).To(Equal(int32(1)),
-						"observed_generation should be 1")
-				}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
+				verifyAdapterRecovery(ctx, h, clusterID, adapterName)
 
 				ginkgo.By("Verify cluster reaches Ready=True after crash-adapter recovery")
-				Eventually(func(g Gomega) {
-					cl, err := h.Client.GetCluster(ctx, clusterID)
-					g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
-					g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
-
-					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
-						"cluster Ready condition should transition to True")
-
-					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
-						"cluster Available condition should transition to True")
-				}, h.Cfg.Timeouts.Cluster.Ready, h.Cfg.Polling.Interval).Should(Succeed())
+				verifyClusterReady(ctx, h, clusterID)
 
 				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter recovered, cluster Ready=True\n")
 			})
 	},
 )
+
+// verifyAdapterAbsent verifies the specified adapter has not reported status while other adapters have.
+func verifyAdapterAbsent(ctx context.Context, h *helper.Helper, clusterID, adapterName string) {
+	Eventually(func(g Gomega) {
+		statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
+
+		for _, status := range statuses.Items {
+			g.Expect(status.Adapter).NotTo(Equal(adapterName),
+				"crash-adapter should NOT be present in statuses (it is unavailable)")
+		}
+
+		// At least one other adapter should have reported
+		g.Expect(len(statuses.Items)).To(BeNumerically(">", 0),
+			"other adapters should have reported their statuses")
+	}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
+}
+
+// verifyClusterNotReady verifies the cluster Ready condition remains False.
+func verifyClusterNotReady(ctx context.Context, h *helper.Helper, clusterID string) {
+	Consistently(func(g Gomega) {
+		cl, err := h.Client.GetCluster(ctx, clusterID)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
+		g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
+
+		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
+			client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
+			"cluster Ready condition should remain False while crash-adapter is unavailable")
+	}, h.Cfg.Polling.Interval*3, h.Cfg.Polling.Interval).Should(Succeed())
+}
+
+// verifyAdapterRecovery verifies the specified adapter has recovered with correct conditions.
+func verifyAdapterRecovery(ctx context.Context, h *helper.Helper, clusterID, adapterName string) {
+	Eventually(func(g Gomega) {
+		statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
+
+		var adapterStatus *openapi.AdapterStatus
+		for i, status := range statuses.Items {
+			if status.Adapter == adapterName {
+				adapterStatus = &statuses.Items[i]
+				break
+			}
+		}
+		g.Expect(adapterStatus).NotTo(BeNil(),
+			"crash-adapter should be present in statuses after recovery")
+
+		g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
+			client.ConditionTypeApplied, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+			"crash-adapter should have Applied=True after recovery")
+
+		g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
+			client.ConditionTypeAvailable, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+			"crash-adapter should have Available=True after recovery")
+
+		g.Expect(h.HasAdapterCondition(adapterStatus.Conditions,
+			client.ConditionTypeHealth, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+			"crash-adapter should have Health=True after recovery")
+
+		g.Expect(adapterStatus.ObservedGeneration).To(Equal(int32(1)),
+			"observed_generation should be 1")
+	}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
+}
+
+// verifyClusterReady verifies the cluster reaches Ready=True and Available=True.
+func verifyClusterReady(ctx context.Context, h *helper.Helper, clusterID string) {
+	Eventually(func(g Gomega) {
+		cl, err := h.Client.GetCluster(ctx, clusterID)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
+		g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
+
+		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
+			client.ConditionTypeReady, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
+			"cluster Ready condition should transition to True")
+
+		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
+			client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
+			"cluster Available condition should transition to True")
+	}, h.Cfg.Timeouts.Cluster.Ready, h.Cfg.Polling.Interval).Should(Succeed())
+}

@@ -168,7 +168,7 @@ func (h *Helper) ScaleDeployment(ctx context.Context, namespace, name string, re
 	logger.Info("scaling deployment", "namespace", namespace, "name", name, "replicas", replicas)
 
 	if err := h.K8sClient.ScaleDeployment(ctx, namespace, name, replicas); err != nil {
-		return fmt.Errorf("failed to scale deployment %s/%s: %w", namespace, name, err)
+		return err
 	}
 
 	logger.Info("deployment scaled successfully", "namespace", namespace, "name", name, "replicas", replicas)
@@ -185,6 +185,9 @@ func (h *Helper) GetDeploymentName(ctx context.Context, namespace, releaseName s
 	}
 	if len(deployments) == 0 {
 		return "", fmt.Errorf("no deployment found for release %s in namespace %s", releaseName, namespace)
+	}
+	if len(deployments) > 1 {
+		return "", fmt.Errorf("found %d deployments for release %s in namespace %s, expected 1", len(deployments), releaseName, namespace)
 	}
 	return deployments[0].Name, nil
 }

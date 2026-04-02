@@ -294,7 +294,8 @@ func (c *Client) ScaleDeployment(ctx context.Context, namespace, name string, re
 	return wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
 		deploy, err := c.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return false, err
+			// Tolerate transient errors during polling — let backoff retry
+			return false, nil
 		}
 		if replicas == 0 {
 			return deploy.Status.AvailableReplicas == 0, nil
