@@ -9,6 +9,7 @@ adapterTaskConfig:
   create: true
   files:
     task-config.yaml: cl-maestro/adapter-task-config.yaml
+    manifestwork.yaml: cl-maestro/adapter-task-resource-manifestwork.yaml
 
 broker:
   create: true
