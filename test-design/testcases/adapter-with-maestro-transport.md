@@ -66,6 +66,11 @@ kubectl port-forward -n hyperfleet svc/hyperfleet-api 8000:8000 &
 
 This test validates the complete Maestro transport happy path: creating a cluster via the HyperFleet API triggers the adapter to create a ManifestWork (resource bundle) on the Maestro server, the Maestro agent applies the ManifestWork content to the target cluster (verified via kubectl), the adapter discovers the ManifestWork and its nested sub-resources via statusFeedback, evaluates post-processing CEL expressions, and reports the final status back to the HyperFleet API.
 
+This test also validates Go template structural syntax in manifest resource refs:
+- **`{{ if .platformType }}`**: Conditional label rendered when `platformType` is captured from cluster spec
+- **`{{ if eq .platformType "gcp" }}` / `{{ else }}`**: Conditional with else branch for ConfigMap data (`platform_tier`)
+- **`{{ range $i, $subnet := .subnets }}`**: Iteration over a dynamic list (subnets captured from cluster spec via CEL)
+
 ---
 
 | **Field** | **Value** |
@@ -76,7 +81,7 @@ This test validates the complete Maestro transport happy path: creating a cluste
 | **Automation** | Automated |
 | **Version** | MVP |
 | **Created** | 2026-02-12 |
-| **Updated** | 2026-03-02 |
+| **Updated** | 2026-04-03 |
 
 ---
 
@@ -87,6 +92,8 @@ This test validates the complete Maestro transport happy path: creating a cluste
 3. At least one Maestro consumer is registered (e.g., `${MAESTRO_CONSUMER}`)
 4. Adapter is deployed in Maestro transport mode (`transport.client: "maestro"`)
 5. Adapter task config defines nestedDiscoveries (`namespace0`, `configmap0`) and post-processing CEL expressions
+6. Adapter task config captures `platformType` and `subnets` from cluster spec via CEL expressions
+7. Manifest resource ref uses Go template structural syntax: `{{ if }}`, `{{ else }}`, `{{ range }}`
 
 ---
 
@@ -97,19 +104,12 @@ This test validates the complete Maestro transport happy path: creating a cluste
 ```bash
 CLUSTER_ID=$(curl -s -X POST ${API_URL}/api/hyperfleet/v1/clusters \
   -H "Content-Type: application/json" \
-  -d '{
-    "kind": "Cluster",
-    "name": "maestro-happy-path-'$(date +%Y%m%d-%H%M%S)'",
-    "spec": {
-      "platform": {
-        "type": "gcp",
-        "gcp": {"projectID": "test-project", "region": "us-central1"}
-      },
-      "release": {"version": "4.14.0"}
-    }
-  }' | jq -r '.id')
+  -d @testdata/payloads/clusters/cluster-request.json \
+  | jq -r '.id')
 echo "CLUSTER_ID=${CLUSTER_ID}"
 ```
+
+> **Note:** See `testdata/payloads/clusters/cluster-request.json` for the full payload including `spec.platform.type` and `spec.platform.gcp.subnets` used by Go template tests.
 
 **Expected Result:**
 - API returns HTTP 201 with a valid cluster ID and `generation: 1`
@@ -170,13 +170,18 @@ kubectl exec -n maestro deployment/maestro -- \
    - Labels: `hyperfleet.io/cluster-id`, `hyperfleet.io/adapter`
    - Annotations: `hyperfleet.io/managed-by`
 
+3. **Go template conditional label** (rendered from `{{ if .platformType }}`):
+   - `hyperfleet.io/platform-type`: set to cluster's `spec.platform.type` value (e.g., `"gcp"`)
+   - This label is only present when `platformType` is non-empty (captured via CEL from cluster spec)
+
 Example output:
 ```json
 {
   "labels": {
     "hyperfleet.io/cluster-id": "${CLUSTER_ID}",
     "hyperfleet.io/generation": "1, code logic: set from cluster generation",
-    "hyperfleet.io/adapter": "${ADAPTER_NAME}, template config: identifies the adapter"
+    "hyperfleet.io/adapter": "${ADAPTER_NAME}, template config: identifies the adapter",
+    "hyperfleet.io/platform-type": "gcp, Go template conditional: {{ if .platformType }}"
   },
   "annotations": {
     "hyperfleet.io/generation": "1, code logic: used for idempotency check",
@@ -246,6 +251,19 @@ kubectl get configmap ${CLUSTER_ID}-${ADAPTER_NAME}-configmap \
 **Expected Result:**
 - Namespace `${CLUSTER_ID}-${ADAPTER_NAME}-namespace` exists and is `Active`
 - ConfigMap `${CLUSTER_ID}-${ADAPTER_NAME}-configmap` exists in the namespace
+- ConfigMap data contains Go template rendered values:
+  - `cluster_id`: matches `${CLUSTER_ID}`
+  - `cluster_name`: matches the cluster name
+  - `platform_tier`: `"cloud"` (from `{{ if eq .platformType "gcp" }}` Go template conditional — cluster spec has `platform.type: "gcp"`)
+  - `subnet_subnet-control-plane-01_name`: `"control-plane"` (from `{{ range .subnets }}` Go template iteration)
+  - `subnet_subnet-control-plane-01_cidr`: `"10.0.1.0/24"`
+  - `subnet_subnet-control-plane-01_role`: `"control-plane"`
+  - `subnet_subnet-worker-01_name`: `"worker-nodes"`
+  - `subnet_subnet-worker-01_cidr`: `"10.0.2.0/24"`
+  - `subnet_subnet-worker-01_role`: `"worker"`
+  - `subnet_subnet-service-01_name`: `"service-mesh"`
+  - `subnet_subnet-service-01_cidr`: `"10.0.3.0/24"`
+  - `subnet_subnet-service-01_role`: `"service"`
 
 #### Step 6: Verify adapter status report to HyperFleet API
 **Action:**

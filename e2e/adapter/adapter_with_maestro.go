@@ -101,6 +101,12 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport] Adapter Framework -
 					Expect(resourceBundle.Metadata.Labels).To(HaveKey(client.KeyAdapter))
 					Expect(resourceBundle.Metadata.Labels[client.KeyAdapter]).To(Equal(adapterName))
 
+					// Verify Go template conditional label: platformType captured from cluster spec ({{ if .platformType }})
+					Expect(resourceBundle.Metadata.Labels).To(HaveKey("hyperfleet.io/platform-type"),
+						"ManifestWork should have platform-type label from {{ if .platformType }} Go template")
+					Expect(resourceBundle.Metadata.Labels["hyperfleet.io/platform-type"]).To(Equal("gcp"),
+						"platform-type label should match cluster spec.platform.type")
+
 					// Verify annotations
 					Expect(resourceBundle.Metadata.Annotations).To(HaveKey(client.KeyGeneration))
 					Expect(resourceBundle.Metadata.Annotations[client.KeyGeneration]).To(Equal("1"))
@@ -181,6 +187,33 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport] Adapter Framework -
 						g.Expect(cm.Data["cluster_id"]).To(Equal(clusterID))
 						g.Expect(cm.Data).To(HaveKey("cluster_name"))
 						g.Expect(cm.Data["cluster_name"]).To(Equal(clusterName))
+
+						// Verify Go template {{ if }}/{{ else }} conditional:
+						// platformType is captured from spec.platform.type via CEL; cluster payload has type="gcp"
+						// so {{ if eq .platformType "gcp" }} renders platform_tier="cloud", else "onprem"
+						g.Expect(cm.Data).To(HaveKeyWithValue("platform_tier", "cloud"),
+							"ConfigMap should have platform_tier=cloud from {{ if eq .platformType \"gcp\" }} Go template")
+
+						// Verify Go template {{ range }} over dynamic subnet list captured from cluster spec
+						// Each subnet in spec.platform.gcp.subnets produces 3 keys: subnet_{id}_name, subnet_{id}_cidr, subnet_{id}_role
+						expectedSubnets := []struct {
+							id, name, cidr, role string
+						}{
+							{"subnet-control-plane-01", "control-plane", "10.0.1.0/24", "control-plane"},
+							{"subnet-worker-01", "worker-nodes", "10.0.2.0/24", "worker"},
+							{"subnet-service-01", "service-mesh", "10.0.3.0/24", "service"},
+						}
+						for _, subnet := range expectedSubnets {
+							nameKey := fmt.Sprintf("subnet_%s_name", subnet.id)
+							cidrKey := fmt.Sprintf("subnet_%s_cidr", subnet.id)
+							roleKey := fmt.Sprintf("subnet_%s_role", subnet.id)
+							g.Expect(cm.Data).To(HaveKeyWithValue(nameKey, subnet.name),
+								"ConfigMap should have %s=%s from {{ range .subnets }} Go template", nameKey, subnet.name)
+							g.Expect(cm.Data).To(HaveKeyWithValue(cidrKey, subnet.cidr),
+								"ConfigMap should have %s=%s from {{ range .subnets }} Go template", cidrKey, subnet.cidr)
+							g.Expect(cm.Data).To(HaveKeyWithValue(roleKey, subnet.role),
+								"ConfigMap should have %s=%s from {{ range .subnets }} Go template", roleKey, subnet.role)
+						}
 
 						ginkgo.GinkgoWriter.Printf("Verified K8s resources created: namespace=%s, configmap=%s\n",
 							namespaceName, configmapName)

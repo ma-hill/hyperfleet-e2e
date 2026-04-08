@@ -14,7 +14,27 @@
         "region": "us-central1",
         "zone": "us-central1-a",
         "network": "default",
-        "subnet": "default-subnet"
+        "subnet": "default-subnet",
+        "subnets": [
+          {
+            "id": "subnet-control-plane-01",
+            "name": "control-plane",
+            "cidr": "10.0.1.0/24",
+            "role": "control-plane"
+          },
+          {
+            "id": "subnet-worker-01",
+            "name": "worker-nodes",
+            "cidr": "10.0.2.0/24",
+            "role": "worker"
+          },
+          {
+            "id": "subnet-service-01",
+            "name": "service-mesh",
+            "cidr": "10.0.3.0/24",
+            "role": "service"
+          }
+        ]
       }
     },
     "release": {
