@@ -32,7 +32,7 @@ discover_adapters() {
 
   # Add cluster adapters
   if [[ -n "${cluster_adapters}" ]]; then
-        IFS=',' read -ra cluster_adapter_array <<< "${cluster_adapters}"
+    IFS=',' read -ra cluster_adapter_array <<<"${cluster_adapters}"
     for adapter_name in "${cluster_adapter_array[@]}"; do
       # Trim whitespace
       adapter_name=$(echo "${adapter_name}" | xargs)
@@ -52,7 +52,7 @@ discover_adapters() {
 
   # Add nodepool adapters
   if [[ -n "${nodepool_adapters}" ]]; then
-        IFS=',' read -ra nodepool_adapter_array <<< "${nodepool_adapters}"
+    IFS=',' read -ra nodepool_adapter_array <<<"${nodepool_adapters}"
     for adapter_name in "${nodepool_adapter_array[@]}"; do
       # Trim whitespace
       adapter_name=$(echo "${adapter_name}" | xargs)
@@ -183,7 +183,6 @@ install_adapter_instance() {
     return 0
   fi
 
-
   # Build helm command with labels to track adapter metadata
   local helm_cmd=(
     helm upgrade --install
@@ -198,12 +197,12 @@ install_adapter_instance() {
     --set "image.registry=${IMAGE_REGISTRY}"
     --set "image.repository=${ADAPTER_IMAGE_REPO}"
     --set "image.tag=${ADAPTER_IMAGE_TAG}"
-    --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
-    --set "broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
-    --set "broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
-    --set "broker.googlepubsub.subscriptionId=${subscription_id}"
-    --set "broker.googlepubsub.topic=${topic}"
-    --set "broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
+    --set "config.clients.broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
+    --set "config.clients.broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
+    --set "config.clients.broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
+    --set "config.clients.broker.googlepubsub.subscriptionId=${subscription_id}"
+    --set "config.clients.broker.googlepubsub.topic=${topic}"
+    --set "config.clients.broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
     --labels "adapter-resource-type=${resource_type},adapter-name=${adapter_name}"
   )
 
@@ -271,7 +270,7 @@ install_adapters() {
       log_warning "Failed to install adapter: ${adapter_dir}"
       ((failed++))
     fi
-    done <<< "${adapters}"
+  done <<<"${adapters}"
 
   if [[ ${failed} -gt 0 ]]; then
     log_error "${failed} adapter(s) failed to install"
@@ -338,7 +337,7 @@ uninstall_adapter_instance() {
         ((uninstall_errors++))
       fi
     fi
-  done <<< "${matching_releases}"
+  done <<<"${matching_releases}"
 
   if [[ ${uninstall_errors} -gt 0 ]]; then
     return 1
@@ -363,7 +362,7 @@ uninstall_adapters() {
       log_warning "Failed to uninstall adapter: ${adapter_dir}"
       ((failed++))
     fi
-    done <<< "${adapters}"
+  done <<<"${adapters}"
 
   if [[ ${failed} -gt 0 ]]; then
     log_error "${failed} adapter(s) failed to uninstall"
