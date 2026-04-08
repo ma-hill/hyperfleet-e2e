@@ -55,9 +55,9 @@ install_sentinel_instance() {
     --set "image.tag=${SENTINEL_IMAGE_TAG}"
     --set "config.clients.hyperfleetApi.baseUrl=${api_url}"
     --set "config.resourceType=${resource_type}"
-    --set "config.clients.broker.type=${SENTINEL_BROKER_TYPE}"
-    --set "config.clients.broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
-    --set "config.clients.broker.googlepubsub.createTopicIfMissing=${SENTINEL_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
+    --set "broker.type=${SENTINEL_BROKER_TYPE}"
+    --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
+    --set "config.broker.googlepubsub.createTopicIfMissing=${SENTINEL_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
   )
 
   # Add message_data.owner_references configuration for nodepools resource type

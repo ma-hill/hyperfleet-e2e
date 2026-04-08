@@ -197,12 +197,12 @@ install_adapter_instance() {
     --set "image.registry=${IMAGE_REGISTRY}"
     --set "image.repository=${ADAPTER_IMAGE_REPO}"
     --set "image.tag=${ADAPTER_IMAGE_TAG}"
-    --set "config.clients.broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
-    --set "config.clients.broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
-    --set "config.clients.broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
-    --set "config.clients.broker.googlepubsub.subscriptionId=${subscription_id}"
-    --set "config.clients.broker.googlepubsub.topic=${topic}"
-    --set "config.clients.broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
+    --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
+    --set "broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
+    --set "broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
+    --set "broker.googlepubsub.subscriptionId=${subscription_id}"
+    --set "broker.googlepubsub.topic=${topic}"
+    --set "broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
     --labels "adapter-resource-type=${resource_type},adapter-name=${adapter_name}"
   )
 
