@@ -22,6 +22,13 @@ const (
 	consumersBasePath       = "/api/maestro/v1/consumers"
 )
 
+// toJSONBLabelSearch converts a label key=value pair into Maestro's JSONB search syntax.
+// Maestro stores ManifestWork labels inside the payload JSONB column at payload->'metadata'->'labels'.
+// The REST API's "search" parameter supports PostgreSQL JSONB containment queries (@>).
+func toJSONBLabelSearch(key, value string) string {
+	return fmt.Sprintf("payload->'metadata'->'labels'@>'{%q:%q}'", key, value)
+}
+
 // Client provides methods to interact with the Maestro API
 type Client struct {
 	baseURL    string
@@ -137,14 +144,12 @@ func (c *Client) DeleteResourceBundle(ctx context.Context, id string) error {
 }
 
 // FindResourceBundleByClusterID finds a resource bundle by cluster ID label
-// Uses server-side filtering via labelSelector query parameter for better performance
+// Uses server-side filtering via Maestro's search parameter with JSONB syntax
 func (c *Client) FindResourceBundleByClusterID(ctx context.Context, clusterID string) (*ResourceBundle, error) {
-	// Use labelSelector query parameter to filter server-side
-	labelSelector := fmt.Sprintf("%s=%s", client.KeyClusterID, clusterID)
-	apiURL := fmt.Sprintf("%s%s?labelSelector=%s",
+	apiURL := fmt.Sprintf("%s%s?search=%s",
 		c.baseURL,
 		resourceBundlesBasePath,
-		url.QueryEscape(labelSelector))
+		url.QueryEscape(toJSONBLabelSearch(client.KeyClusterID, clusterID)))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -187,12 +192,10 @@ func (c *Client) FindResourceBundleByClusterID(ctx context.Context, clusterID st
 // FindAllResourceBundlesByClusterID finds all resource bundles for a cluster ID
 // Returns all matching resource bundles (multiple adapters may create ManifestWorks for the same cluster)
 func (c *Client) FindAllResourceBundlesByClusterID(ctx context.Context, clusterID string) ([]ResourceBundle, error) {
-	// Use labelSelector query parameter to filter server-side
-	labelSelector := fmt.Sprintf("%s=%s", client.KeyClusterID, clusterID)
-	apiURL := fmt.Sprintf("%s%s?labelSelector=%s",
+	apiURL := fmt.Sprintf("%s%s?search=%s",
 		c.baseURL,
 		resourceBundlesBasePath,
-		url.QueryEscape(labelSelector))
+		url.QueryEscape(toJSONBLabelSearch(client.KeyClusterID, clusterID)))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
@@ -232,12 +235,10 @@ func (c *Client) FindAllResourceBundlesByClusterID(ctx context.Context, clusterI
 // FindResourceBundlesByAdapterName finds all resource bundles created by a specific adapter
 // Uses the maestro.io/source-id label to filter by adapter name
 func (c *Client) FindResourceBundlesByAdapterName(ctx context.Context, adapterName string) ([]ResourceBundle, error) {
-	// Use labelSelector query parameter to filter server-side by adapter source-id
-	labelSelector := fmt.Sprintf("maestro.io/source-id=%s", adapterName)
-	apiURL := fmt.Sprintf("%s%s?labelSelector=%s",
+	apiURL := fmt.Sprintf("%s%s?search=%s",
 		c.baseURL,
 		resourceBundlesBasePath,
-		url.QueryEscape(labelSelector))
+		url.QueryEscape(toJSONBLabelSearch("maestro.io/source-id", adapterName)))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
