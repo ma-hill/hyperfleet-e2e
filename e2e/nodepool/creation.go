@@ -43,10 +43,10 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 
 		ginkgo.Describe("Basic Workflow Validation", ginkgo.Label(labels.Tier0), func() {
 			// This test validates the end-to-end nodepool lifecycle workflow:
-			// 1. Initial condition validation (Ready=False, Available=False)
+			// 1. Initial condition validation (Reconciled=False, Available=False)
 			// 2. Required adapter execution with comprehensive metadata validation
-			// 3. Final nodepool state verification (Ready and Available conditions)
-			ginkgo.It("should validate complete workflow from creation to Ready state",
+			// 3. Final nodepool state verification (Reconciled and Available conditions)
+			ginkgo.It("should validate complete workflow from creation to Reconciled state",
 				func(ctx context.Context) {
 					var err error
 
@@ -63,10 +63,10 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 						g.Expect(np.Status).NotTo(BeNil(), "nodepool status should be present")
 						g.Expect(np.Status.Conditions).NotTo(BeEmpty(), "conditions should be populated")
 
-						hasReadyFalse := h.HasResourceCondition(np.Status.Conditions,
-							client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)
-						g.Expect(hasReadyFalse).To(BeTrue(),
-							"initial nodepool conditions should have Ready=False")
+						hasReconciledFalse := h.HasResourceCondition(np.Status.Conditions,
+							client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)
+						g.Expect(hasReconciledFalse).To(BeTrue(),
+							"initial nodepool conditions should have Reconciled=False")
 
 						hasAvailableFalse := h.HasResourceCondition(np.Status.Conditions,
 							client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)
@@ -145,33 +145,33 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 					}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 
 					ginkgo.By("Verify final nodepool state")
-					// Wait for nodepool Ready condition and verify both Ready and Available conditions are True
+					// Wait for nodepool Reconciled condition and verify both Reconciled and Available conditions are True
 					// This confirms the nodepool has reached the desired end state
 					err = h.WaitForNodePoolCondition(
 						ctx,
 						clusterID,
 						nodepoolID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.NodePool.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "nodepool Ready condition should transition to True")
+					Expect(err).NotTo(HaveOccurred(), "nodepool Reconciled condition should transition to True")
 
 					finalNodePool, err := h.Client.GetNodePool(ctx, clusterID, nodepoolID)
 					Expect(err).NotTo(HaveOccurred(), "failed to get final nodepool state")
 					Expect(finalNodePool.Status).NotTo(BeNil(), "nodepool status should be present")
 
-					hasReady := h.HasResourceCondition(finalNodePool.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusTrue)
-					Expect(hasReady).To(BeTrue(), "nodepool should have Ready=True condition")
+					hasReconciled := h.HasResourceCondition(finalNodePool.Status.Conditions,
+						client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)
+					Expect(hasReconciled).To(BeTrue(), "nodepool should have Reconciled=True condition")
 
 					hasAvailable := h.HasResourceCondition(finalNodePool.Status.Conditions,
 						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)
 					Expect(hasAvailable).To(BeTrue(), "nodepool should have Available=True condition")
 
-					// Validate observedGeneration for Ready and Available conditions
+					// Validate observedGeneration for Reconciled and Available conditions
 					for _, condition := range finalNodePool.Status.Conditions {
-						if condition.Type == client.ConditionTypeReady || condition.Type == client.ConditionTypeAvailable {
+						if condition.Type == client.ConditionTypeReconciled || condition.Type == client.ConditionTypeAvailable {
 							Expect(condition.ObservedGeneration).To(Equal(int32(1)),
 								"nodepool condition %s should have observed_generation=1 for new creation request", condition.Type)
 						}
@@ -236,18 +236,18 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 					}
 
 					ginkgo.By("Verify Final NodePool State")
-					// Wait for nodepool Ready condition and verify both Ready and Available conditions are True
+					// Wait for nodepool Reconciled condition and verify both Reconciled and Available conditions are True
 					// This confirms the nodepool workflow completed successfully and all K8s resources were created
 					// Without this, adapters may still be creating resources during cleanup
 					err := h.WaitForNodePoolCondition(
 						ctx,
 						clusterID,
 						nodepoolID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.NodePool.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "nodepool Ready condition should transition to True")
+					Expect(err).NotTo(HaveOccurred(), "nodepool Reconciled condition should transition to True")
 				})
 		})
 
@@ -258,19 +258,19 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 				return
 			}
 
-			ginkgo.By("Verify final cluster state to ensure Ready before cleanup")
-			// Wait for cluster Ready condition to prevent namespace deletion conflicts
+			ginkgo.By("Verify final cluster state to ensure Reconciled before cleanup")
+			// Wait for cluster Reconciled condition to prevent namespace deletion conflicts
 			// Without this, adapters may still be creating resources during cleanup
 			// TODO Replace this workaround with clusters and nodepools API DELETE once HyperFleet API supports
 			err := h.WaitForClusterCondition(
 				ctx,
 				clusterID,
-				client.ConditionTypeReady,
+				client.ConditionTypeReconciled,
 				openapi.ResourceConditionStatusTrue,
 				h.Cfg.Timeouts.Cluster.Ready,
 			)
 			if err != nil {
-				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Ready state before cleanup: %v\n", clusterID, err)
+				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Reconciled state before cleanup: %v\n", clusterID, err)
 			}
 
 			ginkgo.By("cleaning up test cluster " + clusterID)

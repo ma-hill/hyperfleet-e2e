@@ -17,5 +17,5 @@ const (
 
 // Condition types used by cluster-level resources (clusters, nodepools)
 const (
-	ConditionTypeReady = "Ready" // Resource is ready for use
+	ConditionTypeReconciled = "Reconciled" // Resource is reconciled
 )

@@ -19,7 +19,7 @@
 
 ### Description
 
-This test validates that the workflow can work correctly for clusters resource type. It verifies that when a cluster resource is created via the HyperFleet API, the system correctly processes the resource through its lifecycle, required adapters (configured in the test config) execute successfully, and accurately reports status transitions back to the API. The test validates required adapters first to identify specific failures, then confirms the cluster reaches the final Ready and Available state. This approach ensures the complete workflow of CLM can successfully handle clusters resource type requests end-to-end.
+This test validates that the workflow can work correctly for clusters resource type. It verifies that when a cluster resource is created via the HyperFleet API, the system correctly processes the resource through its lifecycle, required adapters (configured in the test config) execute successfully, and accurately reports status transitions back to the API. The test validates required adapters first to identify specific failures, then confirms the cluster reaches the final Reconciled and Available state. This approach ensures the complete workflow of CLM can successfully handle clusters resource type requests end-to-end.
 
 ---
 
@@ -58,7 +58,7 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
 
 **Expected Result:**
 - Response includes the created cluster ID and initial metadata
-- Initial cluster conditions have `status: False` for both condition `{"type": "Ready"}` and `{"type": "Available"}`
+- Initial cluster conditions have `status: False` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
 
 #### Step 2: Verify initial status of cluster
 **Action:**
@@ -68,7 +68,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 ```
 
 **Expected Result:**
-- Cluster `Ready` condition `status: False`
+- Cluster `Reconciled` condition `status: False`
 - Cluster `Available` condition `status: False`
 
 #### Step 3: Verify required adapter execution results
@@ -103,16 +103,16 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/statuses
 #### Step 4: Verify final cluster state
 
 **Action:**
-- Wait for cluster Ready condition to transition to True
+- Wait for cluster Reconciled condition to transition to True
 - Retrieve final cluster status information:
 ```bash
 curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 ```
 
 **Expected Result:**
-- Cluster `Ready` condition transitions from `status: False` to `status: True`
-- Final cluster conditions have `status: True` for both condition `{"type": "Ready"}` and `{"type": "Available"}`
-- Validate that the observedGeneration for the Ready and Available conditions is 1 for a new creation request
+- Cluster `Reconciled` condition transitions from `status: False` to `status: True`
+- Final cluster conditions have `status: True` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
+- Validate that the observedGeneration for the Reconciled and Available conditions is 1 for a new creation request
 - This confirms the cluster has reached the desired end state
 
 #### Step 5: Cleanup resources
@@ -176,7 +176,7 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
 
 **Expected Result:**
 - Response includes the created cluster ID and initial metadata
-- Initial cluster conditions have `status: False` for both condition `{"type": "Ready"}` and `{"type": "Available"}`
+- Initial cluster conditions have `status: False` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
 
 #### Step 2: Wait for all required adapters to complete
 
@@ -353,7 +353,7 @@ kubectl delete namespace {cluster_id} --ignore-not-found
 
 ### Description
 
-This test validates that the end-to-end workflow correctly handles adapter failure scenarios. When an adapter's precondition configuration contains an invalid API endpoint URL, the adapter framework should detect the failure and report error status. The cluster's top-level conditions (`Ready`, `Available`) should remain `False`, accurately reflecting that the cluster has not reached a healthy state. This is a common configuration error scenario when external teams implement their own adapters.
+This test validates that the end-to-end workflow correctly handles adapter failure scenarios. When an adapter's precondition configuration contains an invalid API endpoint URL, the adapter framework should detect the failure and report error status. The cluster's top-level conditions (`Reconciled`, `Available`) should remain `False`, accurately reflecting that the cluster has not reached a healthy state. This is a common configuration error scenario when external teams implement their own adapters.
 
 ---
 
@@ -432,9 +432,9 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 ```
 
 **Expected Result:**
-- Cluster `Ready` condition remains `status: "False"`
+- Cluster `Reconciled` condition remains `status: "False"`
 - Cluster `Available` condition remains `status: "False"`
-- Cluster does not transition to Ready state while any adapter reports failure
+- Cluster does not transition to Reconciled state while any adapter reports failure
 
 #### Step 5: Cleanup Resources (AfterEach)
 
@@ -533,7 +533,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 **Expected Result:**
 - Statuses response does not contain an entry for `crash-adapter` (it is unavailable)
 - Other required adapters have reported their statuses
-- Cluster `Ready` condition remains `status: "False"`
+- Cluster `Reconciled` condition remains `status: "False"`
 
 #### Step 4: Restore crash-adapter and verify cluster reaches correct status
 
@@ -555,7 +555,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 - crash-adapter status entry is now present in the statuses response
 - crash-adapter reports all three condition types with `status: "True"`: `Applied`, `Available`, `Health`
 - `observed_generation` is set to `1`
-- Cluster `Ready` condition transitions to `status: "True"`
+- Cluster `Reconciled` condition transitions to `status: "True"`
 - Cluster `Available` condition transitions to `status: "True"`
 - This confirms no cluster is left in an inconsistent state due to adapter failures
 

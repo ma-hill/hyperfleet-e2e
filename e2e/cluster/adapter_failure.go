@@ -157,7 +157,7 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reflect Adapter 
 
 				// Step 4: Verify cluster top-level status reflects adapter failure
 				ginkgo.By("Verify cluster top-level status reflects adapter failure")
-				// The cluster should remain Ready=False and Available=False while an adapter reports failure.
+				// The cluster should remain Reconciled=False and Available=False while an adapter reports failure.
 				// Use Consistently to verify the conditions remain False over multiple polling cycles.
 				Consistently(func(g Gomega) {
 					cl, err := h.Client.GetCluster(ctx, clusterID)
@@ -165,15 +165,15 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reflect Adapter 
 					g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
 
 					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
-						"cluster Ready condition should remain False")
+						client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
+						"cluster Reconciled condition should remain False")
 
 					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
 						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
 						"cluster Available condition should remain False")
 				}, h.Cfg.Polling.Interval*3, h.Cfg.Polling.Interval).Should(Succeed())
 
-				ginkgo.GinkgoWriter.Printf("Verified cluster top-level status: Ready=False, Available=False (reflecting adapter failure)\n")
+				ginkgo.GinkgoWriter.Printf("Verified cluster top-level status: Reconciled=False, Available=False (reflecting adapter failure)\n")
 			})
 	},
 )

@@ -633,9 +633,9 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 ```
 
 **Expected Result:**
-- Cluster `Ready` condition remains `status: "False"`
+- Cluster `Reconciled` condition remains `status: "False"`
 - Cluster `Available` condition remains `status: "False"`
-- Cluster does not transition to Ready state while the Maestro adapter reports failure
+- Cluster does not transition to Reconciled state while the Maestro adapter reports failure
 
 #### Step 5: Restore Maestro and verify recovery
 **Action:**
@@ -654,7 +654,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 
 **Expected Result:**
 - Maestro adapter conditions transition to: `Applied=True`, `Available=True`, `Health=True`
-- Cluster `Ready` condition transitions to `status: "True"`
+- Cluster `Reconciled` condition transitions to `status: "True"`
 - Cluster `Available` condition transitions to `status: "True"`
 
 > **Note:** After Maestro restores, the adapter's CloudEvents client (MQTT-based) takes 60-90 seconds to re-establish the connection. During this window, events may fail with "the cloudevents client is not ready". The adapter automatically recovers once the connection is restored.

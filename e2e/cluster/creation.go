@@ -37,8 +37,8 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 			// This test validates the end-to-end cluster lifecycle workflow:
 			// 1. Cluster creation via API with initial condition validation
 			// 2. Required adapter execution with comprehensive metadata validation
-			// 3. Final cluster state verification (Ready and Available conditions)
-			ginkgo.It("should validate complete workflow from creation to Ready state",
+			// 3. Final cluster state verification (Reconciled and Available conditions)
+			ginkgo.It("should validate complete workflow from creation to Reconciled state",
 				func(ctx context.Context) {
 					ginkgo.By("Verify initial status of cluster")
 					// Verify initial conditions are False, indicating workflow has not completed yet
@@ -47,10 +47,10 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 					Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
 					Expect(cluster.Status).NotTo(BeNil(), "cluster status should be present")
 
-					hasReadyFalse := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)
-					Expect(hasReadyFalse).To(BeTrue(),
-						"initial cluster conditions should have Ready=False")
+					hasReconciledFalse := h.HasResourceCondition(cluster.Status.Conditions,
+						client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)
+					Expect(hasReconciledFalse).To(BeTrue(),
+						"initial cluster conditions should have Reconciled=False")
 
 					hasAvailableFalse := h.HasResourceCondition(cluster.Status.Conditions,
 						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)
@@ -128,32 +128,32 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 					}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 
 					ginkgo.By("Verify final cluster state")
-					// Wait for cluster Ready condition and verify both Ready and Available conditions are True
+					// Wait for cluster Reconciled condition and verify both Reconciled and Available conditions are True
 					// This confirms the cluster has reached the desired end state
 					err = h.WaitForClusterCondition(
 						ctx,
 						clusterID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.Cluster.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "cluster Ready condition should transition to True")
+					Expect(err).NotTo(HaveOccurred(), "cluster Reconciled condition should transition to True")
 
 					finalCluster, err := h.Client.GetCluster(ctx, clusterID)
 					Expect(err).NotTo(HaveOccurred(), "failed to get final cluster state")
 					Expect(finalCluster.Status).NotTo(BeNil(), "cluster status should be present")
 
-					hasReady := h.HasResourceCondition(finalCluster.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusTrue)
-					Expect(hasReady).To(BeTrue(), "cluster should have Ready=True condition")
+					hasReconciled := h.HasResourceCondition(finalCluster.Status.Conditions,
+						client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)
+					Expect(hasReconciled).To(BeTrue(), "cluster should have Reconciled=True condition")
 
 					hasAvailable := h.HasResourceCondition(finalCluster.Status.Conditions,
 						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)
 					Expect(hasAvailable).To(BeTrue(), "cluster should have Available=True condition")
 
-					// Validate observedGeneration for Ready and Available conditions
+					// Validate observedGeneration for Reconciled and Available conditions
 					for _, condition := range finalCluster.Status.Conditions {
-						if condition.Type == client.ConditionTypeReady || condition.Type == client.ConditionTypeAvailable {
+						if condition.Type == client.ConditionTypeReconciled || condition.Type == client.ConditionTypeAvailable {
 							Expect(condition.ObservedGeneration).To(Equal(int32(1)),
 								"cluster condition %s should have observed_generation=1 for new creation request", condition.Type)
 						}
@@ -235,17 +235,17 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 						ginkgo.GinkgoWriter.Printf("Successfully verified K8s resource for adapter: %s\n", adapterName)
 					}
 
-					ginkgo.By("Verify final cluster state to ensure Ready before cleanup")
-					// Wait for cluster Ready condition to prevent namespace deletion conflicts
+					ginkgo.By("Verify final cluster state to ensure Reconciled before cleanup")
+					// Wait for cluster Reconciled condition to prevent namespace deletion conflicts
 					// Without this, adapters may still be creating resources during cleanup
 					err := h.WaitForClusterCondition(
 						ctx,
 						clusterID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.Cluster.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "cluster Ready condition should transition to True before cleanup")
+					Expect(err).NotTo(HaveOccurred(), "cluster Reconciled condition should transition to True before cleanup")
 				})
 		})
 

@@ -56,13 +56,13 @@ wait
 
 #### Step 2: Wait for all clusters to be processed
 **Action:**
-- For each cluster created in Step 1, poll its status until Ready state or a timeout is reached:
+- For each cluster created in Step 1, poll its status until Reconciled state or a timeout is reached:
 ```bash
 curl -s ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id} | jq '.conditions'
 ```
 
 **Expected Result:**
-- All 5 clusters eventually reach Ready=True and Available=True
+- All 5 clusters eventually reach Reconciled=True and Available=True
 - No cluster is stuck in a pending or processing state indefinitely
 
 #### Step 3: Verify Kubernetes resources for all clusters
@@ -166,7 +166,7 @@ curl -s ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools | jq '.item
 - List contains all 3 nodepools
 - Each nodepool has a distinct ID and name
 
-#### Step 3: Verify each nodepool reaches Ready state independently
+#### Step 3: Verify each nodepool reaches Reconciled state independently
 **Action:**
 - For each nodepool created in Step 1, check its conditions:
 ```bash
@@ -174,7 +174,7 @@ curl -s ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepool_i
 ```
 
 **Expected Result:**
-- All 3 nodepools eventually reach Ready=True and Available=True
+- All 3 nodepools eventually reach Reconciled=True and Available=True
 - Each nodepool's adapter status is independent (one nodepool's failure does not block others)
 
 #### Step 4: Verify Kubernetes resources are isolated per nodepool

@@ -42,7 +42,7 @@ export HYPERFLEET_API_URL=https://api.hyperfleet.example.com
 
 **What happens**:
 1. Framework creates a new cluster via API
-2. Waits for cluster to reach Ready state
+2. Waits for cluster to reach Reconciled state
 3. Validates adapter conditions
 4. Deletes cluster after test completes
 

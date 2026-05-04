@@ -116,10 +116,10 @@ var _ = ginkgo.Describe("[Suite: adapter-failures][negative] Adapter framework c
 					g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
 					g.Expect(cluster.Status).NotTo(BeNil(), "cluster status should be present")
 
-					hasReadyFalse := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)
-					g.Expect(hasReadyFalse).To(BeTrue(),
-						"initial cluster conditions should have Ready=False")
+					hasReconciledFalse := h.HasResourceCondition(cluster.Status.Conditions,
+						client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)
+					g.Expect(hasReconciledFalse).To(BeTrue(),
+						"initial cluster conditions should have Reconciled=False")
 
 					hasAvailableFalse := h.HasResourceCondition(cluster.Status.Conditions,
 						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)

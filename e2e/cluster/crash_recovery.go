@@ -146,14 +146,14 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reach Correct St
 					}
 				})
 
-				// Step 3: Verify crash-adapter has not reported status and cluster is not Ready
+				// Step 3: Verify crash-adapter has not reported status and cluster is not Reconciled
 				ginkgo.By("Verify crash-adapter has not reported status")
 				verifyAdapterAbsent(ctx, h, clusterID, adapterName)
 
-				ginkgo.By("Verify cluster Ready=False due to missing crash-adapter")
-				verifyClusterNotReady(ctx, h, clusterID)
+				ginkgo.By("Verify cluster Reconciled=False due to missing crash-adapter")
+				verifyClusterNotReconciled(ctx, h, clusterID)
 
-				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter absent, cluster Ready=False\n")
+				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter absent, cluster Reconciled=False\n")
 
 				// Step 4: Restore crash-adapter and verify recovery
 				ginkgo.By("Restore crash-adapter by scaling up")
@@ -163,10 +163,10 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reach Correct St
 				ginkgo.By("Verify crash-adapter reports correct status after recovery")
 				verifyAdapterRecovery(ctx, h, clusterID, adapterName)
 
-				ginkgo.By("Verify cluster reaches Ready=True after crash-adapter recovery")
-				verifyClusterReady(ctx, h, clusterID)
+				ginkgo.By("Verify cluster reaches Reconciled=True after crash-adapter recovery")
+				verifyClusterReconciled(ctx, h, clusterID)
 
-				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter recovered, cluster Ready=True\n")
+				ginkgo.GinkgoWriter.Printf("Verified: crash-adapter recovered, cluster Reconciled=True\n")
 			})
 	},
 )
@@ -188,16 +188,16 @@ func verifyAdapterAbsent(ctx context.Context, h *helper.Helper, clusterID, adapt
 	}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 }
 
-// verifyClusterNotReady verifies the cluster Ready condition remains False.
-func verifyClusterNotReady(ctx context.Context, h *helper.Helper, clusterID string) {
+// verifyClusterNotReconciled verifies the cluster Reconciled condition remains False.
+func verifyClusterNotReconciled(ctx context.Context, h *helper.Helper, clusterID string) {
 	Consistently(func(g Gomega) {
 		cl, err := h.Client.GetCluster(ctx, clusterID)
 		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
 		g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
 
 		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-			client.ConditionTypeReady, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
-			"cluster Ready condition should remain False while crash-adapter is unavailable")
+			client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
+			"cluster Reconciled condition should remain False while crash-adapter is unavailable")
 	}, h.Cfg.Polling.Interval*3, h.Cfg.Polling.Interval).Should(Succeed())
 }
 
@@ -234,16 +234,16 @@ func verifyAdapterRecovery(ctx context.Context, h *helper.Helper, clusterID, ada
 	}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 }
 
-// verifyClusterReady verifies the cluster reaches Ready=True and Available=True.
-func verifyClusterReady(ctx context.Context, h *helper.Helper, clusterID string) {
+// verifyClusterReconciled verifies the cluster reaches Reconciled=True and Available=True.
+func verifyClusterReconciled(ctx context.Context, h *helper.Helper, clusterID string) {
 	Eventually(func(g Gomega) {
 		cl, err := h.Client.GetCluster(ctx, clusterID)
 		g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
 		g.Expect(cl.Status).NotTo(BeNil(), "cluster status should be present")
 
 		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-			client.ConditionTypeReady, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
-			"cluster Ready condition should transition to True")
+			client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
+			"cluster Reconciled condition should transition to True")
 
 		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
 			client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)).To(BeTrue(),

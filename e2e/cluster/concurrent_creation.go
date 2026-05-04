@@ -27,7 +27,7 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 			clusterIDs = nil
 		})
 
-		ginkgo.It("should create multiple clusters concurrently and all reach Ready state with isolated resources",
+		ginkgo.It("should create multiple clusters concurrently and all reach Reconciled state with isolated resources",
 			func(ctx context.Context) {
 				ginkgo.By(fmt.Sprintf("Submit %d cluster creation requests simultaneously", concurrentClusterCount))
 
@@ -84,17 +84,17 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 					idSet[id] = true
 				}
 
-				ginkgo.By("Wait for all clusters to reach Ready=True and Available=True")
+				ginkgo.By("Wait for all clusters to reach Reconciled=True and Available=True")
 				for i, clusterID := range clusterIDs {
-					ginkgo.GinkgoWriter.Printf("Waiting for cluster %d (%s) to become Ready...\n", i, clusterID)
+					ginkgo.GinkgoWriter.Printf("Waiting for cluster %d (%s) to become Reconciled...\n", i, clusterID)
 					err := h.WaitForClusterCondition(
 						ctx,
 						clusterID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.Cluster.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "cluster %d (%s) should reach Ready=True", i, clusterID)
+					Expect(err).NotTo(HaveOccurred(), "cluster %d (%s) should reach Reconciled=True", i, clusterID)
 
 					cluster, err := h.Client.GetCluster(ctx, clusterID)
 					Expect(err).NotTo(HaveOccurred(), "failed to get cluster %d (%s)", i, clusterID)
@@ -104,7 +104,7 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 					Expect(hasAvailable).To(BeTrue(),
 						"cluster %d (%s) should have Available=True", i, clusterID)
 
-					ginkgo.GinkgoWriter.Printf("Cluster %d (%s) reached Ready=True, Available=True\n", i, clusterID)
+					ginkgo.GinkgoWriter.Printf("Cluster %d (%s) reached Reconciled=True, Available=True\n", i, clusterID)
 				}
 
 				ginkgo.By("Verify each cluster has isolated Kubernetes resources (separate namespaces)")

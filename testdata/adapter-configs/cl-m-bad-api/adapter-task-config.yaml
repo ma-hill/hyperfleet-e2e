@@ -21,7 +21,7 @@ params:
 # Preconditions without API calls (API URL is unreachable in this test)
 # Use only parameter-based values to avoid API dependency
 preconditions:
-  - name: "clusterReady"
+  - name: "clusterReconciled"
     # Simple expression that always passes
     expression: "true"
 

@@ -34,7 +34,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 			ginkgo.GinkgoWriter.Printf("Using cluster ID: %s\n", clusterID)
 		})
 
-		ginkgo.It("should create multiple nodepools under the same cluster and all reach Ready state with isolated resources",
+		ginkgo.It("should create multiple nodepools under the same cluster and all reach Reconciled state with isolated resources",
 			func(ctx context.Context) {
 				ginkgo.By(fmt.Sprintf("Submit %d nodepool creation requests simultaneously", concurrentNodePoolCount))
 
@@ -101,18 +101,18 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 				}
 				ginkgo.GinkgoWriter.Printf("All %d nodepools found in list API\n", concurrentNodePoolCount)
 
-				ginkgo.By("Wait for all nodepools to reach Ready=True and Available=True")
+				ginkgo.By("Wait for all nodepools to reach Reconciled=True and Available=True")
 				for i, npID := range nodepoolIDs {
-					ginkgo.GinkgoWriter.Printf("Waiting for nodepool %d (%s) to become Ready...\n", i, npID)
+					ginkgo.GinkgoWriter.Printf("Waiting for nodepool %d (%s) to become Reconciled...\n", i, npID)
 					err := h.WaitForNodePoolCondition(
 						ctx,
 						clusterID,
 						npID,
-						client.ConditionTypeReady,
+						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
 						h.Cfg.Timeouts.NodePool.Ready,
 					)
-					Expect(err).NotTo(HaveOccurred(), "nodepool %d (%s) should reach Ready=True", i, npID)
+					Expect(err).NotTo(HaveOccurred(), "nodepool %d (%s) should reach Reconciled=True", i, npID)
 
 					np, err := h.Client.GetNodePool(ctx, clusterID, npID)
 					Expect(err).NotTo(HaveOccurred(), "failed to get nodepool %d (%s)", i, npID)
@@ -122,7 +122,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 					Expect(hasAvailable).To(BeTrue(),
 						"nodepool %d (%s) should have Available=True", i, npID)
 
-					ginkgo.GinkgoWriter.Printf("Nodepool %d (%s) reached Ready=True, Available=True\n", i, npID)
+					ginkgo.GinkgoWriter.Printf("Nodepool %d (%s) reached Reconciled=True, Available=True\n", i, npID)
 				}
 
 				ginkgo.By("Verify Kubernetes resources are isolated per nodepool")
@@ -181,16 +181,16 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 				return
 			}
 
-			ginkgo.By("Verify final cluster state to ensure Ready before cleanup")
+			ginkgo.By("Verify final cluster state to ensure Reconciled before cleanup")
 			err := h.WaitForClusterCondition(
 				ctx,
 				clusterID,
-				client.ConditionTypeReady,
+				client.ConditionTypeReconciled,
 				openapi.ResourceConditionStatusTrue,
 				h.Cfg.Timeouts.Cluster.Ready,
 			)
 			if err != nil {
-				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Ready state before cleanup: %v\n", clusterID, err)
+				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Reconciled state before cleanup: %v\n", clusterID, err)
 			}
 
 			ginkgo.By("cleaning up test cluster " + clusterID)

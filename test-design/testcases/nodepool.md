@@ -16,7 +16,7 @@
 
 ### Description
 
-This test validates that the workflow can work correctly for nodepools resource type. It verifies that when a nodepool resource is created via the HyperFleet API, the system correctly processes the resource through its lifecycle, required adapters (configured in the test config) execute successfully, and accurately reports status transitions back to the API. The test validates required adapters first to identify specific failures, then confirms the nodepool reaches the final Ready and Available state. This approach ensures the complete workflow of CLM can successfully handle nodepools resource type requests end-to-end.
+This test validates that the workflow can work correctly for nodepools resource type. It verifies that when a nodepool resource is created via the HyperFleet API, the system correctly processes the resource through its lifecycle, required adapters (configured in the test config) execute successfully, and accurately reports status transitions back to the API. The test validates required adapters first to identify specific failures, then confirms the nodepool reaches the final Reconciled and Available state. This approach ensures the complete workflow of CLM can successfully handle nodepools resource type requests end-to-end.
 
 ---
 
@@ -39,7 +39,7 @@ This test validates that the workflow can work correctly for nodepools resource 
 2. HyperFleet API and HyperFleet Sentinel services are deployed and running successfully
 3. The adapters defined in testdata/adapter-configs are all deployed successfully
 4. A cluster resource creation request has been submitted and its cluster_id is available
-    - **Note**: Cluster does not need to be Ready before creating nodepool
+    - **Note**: Cluster does not need to be Reconciled before creating nodepool
     - **Cleanup**: Cluster resource cleanup should be handled in test suite teardown where cluster was created
 
 ---
@@ -64,7 +64,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepo
 ```
 
 **Expected Result:**
-- NodePool `Ready` condition `status: False`
+- NodePool `Reconciled` condition `status: False`
 - NodePool `Available` condition `status: False`
 
 #### Step 2: Verify required adapter execution results
@@ -97,16 +97,16 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepo
 #### Step 3: Verify final nodepool state
 
 **Action:**
-- Wait for nodepool Ready condition to transition to True
+- Wait for nodepool Reconciled condition to transition to True
 - Retrieve final nodepool status information:
 ```bash
 curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepool_id}
 ```
 
 **Expected Result:**
-- NodePool `Ready` condition transitions from `status: False` to `status: True`
-- Final nodepool conditions have `status: True` for both condition `{"type": "Ready"}` and `{"type": "Available"}`
-- Validate that the observedGeneration for the Ready and Available conditions is 1 for a new creation request
+- NodePool `Reconciled` condition transitions from `status: False` to `status: True`
+- Final nodepool conditions have `status: True` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
+- Validate that the observedGeneration for the Reconciled and Available conditions is 1 for a new creation request
 - Validate adapter-specific conditions in nodepool status (Note: This check will be removed once these adapter-specific conditions are removed in the future):
   - Each required adapter should report its own condition type (e.g., `NpConfigmapSuccessful`) with `status: True`
 - This confirms the nodepool has reached the desired end state
@@ -157,7 +157,7 @@ This test verifies that the Kubernetes resources of different types (e.g., confi
 2. HyperFleet API and HyperFleet Sentinel services are deployed and running successfully
 3. The adapters defined in testdata/adapter-configs are all deployed successfully
 4. A cluster resource creation request has been submitted and its cluster_id is available
-    - **Note**: Cluster does not need to be Ready before creating nodepool
+    - **Note**: Cluster does not need to be Reconciled before creating nodepool
     - **Cleanup**: Cluster resource cleanup should be handled in test suite teardown where cluster was created
 
 ---
@@ -203,14 +203,14 @@ kubectl get configmap -n {cluster_id} \
 #### Step 2: Verify Final NodePool State
 
 **Action:**
-- Wait for nodepool Ready condition to transition to True
+- Wait for nodepool Reconciled condition to transition to True
 - Retrieve final nodepool status information:
 ```bash
 curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepool_id}
 ```
 
 **Expected Result:**
-- NodePool `Ready` condition has `status: True`
+- NodePool `Reconciled` condition has `status: True`
 - This confirms the nodepool workflow completed successfully and all K8s resources were created
 
 #### Step 3: Cleanup Resources (AfterEach)
