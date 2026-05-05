@@ -17,8 +17,8 @@ Every E2E test case must be assigned exactly one severity tier. The tier determi
 | Tier | CI/CD Gate | Response SLA |
 |------|-----------|--------------|
 | **Tier0** | Blocks release | Fix immediately |
-| **Tier1** | Should be addressed before release | Fix before next sprint ends |
-| **Tier2** | Can be deferred | Fix when capacity allows |
+| **Tier1** | Advisory (non-blocking) | Fix before next sprint ends |
+| **Tier2** | Informational | Fix when capacity allows |
 
 ### Tier0 -- Critical
 
@@ -73,6 +73,7 @@ A Tier1 failure means **important features are affected but core operations stil
 | [Concurrent cluster creations without conflicts](testcases/concurrent-processing.md#test-title-system-can-process-concurrent-cluster-creations-without-resource-conflicts) | Secondary workflow -- concurrent creation is important but not the primary single-cluster path |
 | [ManifestWork apply fails for unregistered consumer](testcases/adapter-with-maestro-transport.md#test-title-manifestwork-apply-fails-when-targeting-unregistered-consumer) | Error handling -- validates graceful failure for a misconfigured adapter, not the normal transport path |
 | [Adapter statuses transition during update reconciliation](testcases/update-cluster.md#test-title-adapter-statuses-transition-during-update-reconciliation) | Secondary workflow -- validates intermediate state transitions, not the final converged state |
+| [Stuck deletion -- adapter unable to finalize](testcases/delete-cluster.md#test-title-stuck-deletion----adapter-unable-to-finalize-prevents-hard-delete) | Operational visibility -- adapter permanently fails to finalize, causing silent resource leak that compounds over time if undetected |
 
 ### Tier2 -- Minor
 
@@ -97,14 +98,14 @@ A Tier2 failure means **edge cases or rare scenarios don't work as expected**. T
 |-----------|-----------|
 | [Cluster reaches correct status after adapter crash and recovery](testcases/cluster.md#test-title-cluster-can-reach-correct-status-after-adapter-crash-and-recovery) | Infrastructure recovery -- involves killing adapter pods and verifying self-healing. Crashes are rare; operators can restart pods manually |
 | [Maestro server unavailability graceful handling](testcases/adapter-with-maestro-transport.md#test-title-adapter-can-handle-maestro-server-unavailability-gracefully) | Infrastructure recovery -- simulates Maestro outage. Server failures are rare and recoverable |
-| [Stuck deletion -- adapter unable to finalize](testcases/delete-cluster.md#test-title-stuck-deletion----adapter-unable-to-finalize-prevents-hard-delete) | Error case -- adapter permanently fails to finalize. Requires specific adapter misconfiguration and manual intervention |
 | [DELETE during initial creation before Reconciled](testcases/delete-cluster.md#test-title-delete-during-initial-creation-before-cluster-reaches-reconciled) | Race condition -- user deletes a cluster before it finishes creating. Unusual timing scenario |
 | [Cascade DELETE while child nodepool is mid-update](testcases/delete-cluster.md#test-title-cascade-delete-on-cluster-while-child-nodepool-is-mid-update-reconciliation) | Race condition -- cluster deletion while nodepool is being updated. Requires specific timing overlap |
 
 ### Tier Decision Flowchart
 
 ```text
-Is this a core lifecycle happy path (create/update/delete)?
+Does this test validate a core Tier0 concern?
+(lifecycle happy path, data integrity, platform guarantee, or system-wide blast radius)
   |
   +-- YES --> Tier0
   |
