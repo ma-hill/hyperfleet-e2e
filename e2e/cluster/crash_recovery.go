@@ -248,5 +248,5 @@ func verifyClusterReconciled(ctx context.Context, h *helper.Helper, clusterID st
 		g.Expect(h.HasResourceCondition(cl.Status.Conditions,
 			client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)).To(BeTrue(),
 			"cluster Available condition should transition to True")
-	}, h.Cfg.Timeouts.Cluster.Ready, h.Cfg.Polling.Interval).Should(Succeed())
+	}, h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).Should(Succeed())
 }

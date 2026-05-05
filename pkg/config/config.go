@@ -143,12 +143,12 @@ type TimeoutsConfig struct {
 
 // ClusterTimeouts contains cluster-related timeouts
 type ClusterTimeouts struct {
-	Ready time.Duration `yaml:"ready" mapstructure:"ready"`
+	Reconciled time.Duration `yaml:"reconciled" mapstructure:"reconciled"`
 }
 
 // NodePoolTimeouts contains nodepool-related timeouts
 type NodePoolTimeouts struct {
-	Ready time.Duration `yaml:"ready" mapstructure:"ready"`
+	Reconciled time.Duration `yaml:"reconciled" mapstructure:"reconciled"`
 }
 
 // AdapterTimeouts contains adapter-related timeouts
@@ -282,11 +282,11 @@ func applyViperValues(v reflect.Value, prefix string) {
 // applyDefaults applies default values for unset fields
 func (c *Config) applyDefaults() {
 	// Apply timeout defaults
-	if c.Timeouts.Cluster.Ready == 0 {
-		c.Timeouts.Cluster.Ready = DefaultClusterReadyTimeout
+	if c.Timeouts.Cluster.Reconciled == 0 {
+		c.Timeouts.Cluster.Reconciled = DefaultClusterReconciledTimeout
 	}
-	if c.Timeouts.NodePool.Ready == 0 {
-		c.Timeouts.NodePool.Ready = DefaultNodePoolReadyTimeout
+	if c.Timeouts.NodePool.Reconciled == 0 {
+		c.Timeouts.NodePool.Reconciled = DefaultNodePoolReconciledTimeout
 	}
 	if c.Timeouts.Adapter.Processing == 0 {
 		c.Timeouts.Adapter.Processing = DefaultAdapterProcessingTimeout
@@ -421,8 +421,8 @@ func (c *Config) Display() {
 		"gcp_project_id", c.GCPProjectID,
 		"output_dir", c.OutputDir,
 		"testdata_dir", c.TestDataDir,
-		"timeout_cluster_ready", c.Timeouts.Cluster.Ready,
-		"timeout_nodepool_ready", c.Timeouts.NodePool.Ready,
+		"timeout_cluster_reconciled", c.Timeouts.Cluster.Reconciled,
+		"timeout_nodepool_reconciled", c.Timeouts.NodePool.Reconciled,
 		"timeout_adapter_processing", c.Timeouts.Adapter.Processing,
 		"polling_interval", c.Polling.Interval,
 		"log_level", c.Log.Level,

@@ -28,7 +28,7 @@
 
 **Endpoint**: `POST /api/hyperfleet/v1/clusters`
 
-**Objective**: Validate end-to-end cluster creation from API request to Ready state on GCP.
+**Objective**: Validate end-to-end cluster creation from API request to Reconciled state on GCP.
 
 **Test Steps**:
 1. Submit cluster creation request via `POST /api/hyperfleet/v1/clusters`
@@ -40,13 +40,13 @@
 2. Verify API response
    - HTTP 201 Created
    - Cluster ID generated
-   - status.phase = "Not Ready" (MVP: only "Ready" or "Not Ready")
+   - status.conditions.Reconciled = "False"
    - status.adapters = [] (no adapters reported yet)
    - status.lastUpdated set
    - generation = 1
 
 3. Monitor cluster status via `GET /api/hyperfleet/v1/clusters/{id}`
-   - Verify phase remains "Not Ready" until all adapters complete
+   - Verify Reconciled remains "False" until all adapters complete
    - Monitor status.adapters array as adapters report their status
 
 4. Monitor adapter statuses via `GET /api/hyperfleet/v1/clusters/{id}/statuses`
@@ -59,7 +59,7 @@
      - Health: True (NoErrors)
      - Data(optional):{...}
 5. Verify final state
-   - Cluster status.phase = "Ready"
+   - Cluster status.conditions.Reconciled = "True"
    - Cluster status.adapters shows all adapters with:
      - name: adapter name
      - available: "True"
@@ -71,7 +71,7 @@
 **Expected Duration**: Average time
 
 **Success Criteria**:
-- Cluster transitions to Ready state
+- Cluster transitions to Reconciled=True
 - All adapters complete successfully
 - No errors in logs (API, Sentinel, Adapters, Jobs)
 - Kubernetes Jobs complete successfully
@@ -104,10 +104,10 @@
 
 **Endpoint**: `POST /api/hyperfleet/v1/clusters/{cluster_id}/nodepools`
 
-**Objective**: Validate end-to-end nodepool creation from API request to Ready state for an existing cluster.
+**Objective**: Validate end-to-end nodepool creation from API request to Reconciled state for an existing cluster.
 
 **Test Steps**:
-1. Prerequisites: Create cluster via E2E-001 and wait for Ready state
+1. Prerequisites: Create cluster via E2E-001 and wait for Reconciled=True
 2. Submit nodepool creation request via `POST /api/hyperfleet/v1/clusters/{cluster_id}/nodepools`
    - Name: "gpu-nodepool"
    - MachineType: "n1-standard-8"
@@ -117,7 +117,7 @@
 3. Verify API response
    - HTTP 201 Created
    - Nodepool ID generated
-   - status.phase = "Not Ready" (MVP: only "Ready" or "Not Ready")
+   - status.conditions.Reconciled = "False"
    - status.adapters = [] (no adapters reported yet)
    - status.lastUpdated set
    - generation = 1
@@ -127,7 +127,7 @@
    - Can filter by labels
 
 5. Monitor nodepool status via `GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{id}`
-   - Verify phase remains "Not Ready" until all adapters complete
+   - Verify Reconciled remains "False" until all adapters complete
    - Monitor status.adapters array as adapters report their status
 
 6. Monitor adapter statuses via `GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{id}/statuses`
@@ -144,7 +144,7 @@
      - Health: True (NoErrors)
 
 7. Verify final state
-   - Nodepool status.phase = "Ready"
+   - Nodepool status.conditions.Reconciled = "True"
    - Nodepool status.adapters shows all adapters with:
      - name: adapter name
      - available: "True"
@@ -156,7 +156,7 @@
 **Expected Duration**: Average time
 
 **Success Criteria**:
-- Nodepool transitions to Ready state
+- Nodepool transitions to Reconciled=True
 - All adapters complete successfully
 - Nodes are created and healthy in the cluster
 - No errors in logs (API, Sentinel, Adapters, Jobs)
@@ -170,7 +170,7 @@
 
 **Objective**: Validate nodepool spec update triggers reconciliation and completes successfully.
 
-**Scope**: Update nodepool configuration (e.g., replica count), verify generation increments, verify all adapters reconcile changes, and nodepool returns to Ready state with correct node count.
+**Scope**: Update nodepool configuration (e.g., replica count), verify generation increments, verify all adapters reconcile changes, and nodepool returns to Reconciled=True with correct node count.
 
 ---
 
@@ -256,7 +256,7 @@
      - Available: False (reason: "ValidationFailed", message: "Reasonable reason for failure (validation logic)")")
      - Applied: True (reason: "JobLaunched", message: "Kubernetes Job created successfully")
      - Health: True (reason: "NoErrors", message: "Adapter executed normally (validation logic failed, not adapter error)")
-   - Verify cluster status.phase = "Not Ready"
+   - Verify cluster status.conditions.Reconciled = "False"
    - Verify cluster status.adapters shows validation adapter with available: "False"
 4. Verify data field contains detailed validation results
 
@@ -283,7 +283,7 @@
      - Available: False (reason: "ResourceCreationFailed", message: "Failed to create Job: unknown custom resource")
      - Applied: False 
      - Health: False (reason: "UnexpectedError", message: "Kubernetes API rejected Job creation")
-   - Verify cluster status.phase = "Not Ready"
+   - Verify cluster status.conditions.Reconciled = "False"
    - Verify cluster status.adapters shows adapter with available: "False"
 4. Verify data field contains detailed error information
 
@@ -299,7 +299,7 @@
      - Available: False (reason: "JobFailed", message: "Job completed with errors")
      - Applied: True (reason: "JobCreated", message: "Kubernetes Job created successfully")
      - Health: False (reason: "JobExecutionFailed", message: "Job container exited with code -1")
-   - Verify cluster status.phase = "Not Ready"
+   - Verify cluster status.conditions.Reconciled = "False"
    - Verify cluster status.adapters shows adapter with available: "False"
 4. Verify data field contains detailed error information
 
@@ -376,7 +376,7 @@
 **Objective**: Validate system continues functioning after Sentinel restarts.
 
 **Test Steps**:
-1. Create 2 clusters (both in progress, not Ready)
+1. Create 2 clusters (both in progress, not Reconciled)
 2. Kill Sentinel Operator pod
 3. Monitor cluster progress
    - Verify no new events published during Sentinel downtime
@@ -385,7 +385,7 @@
 5. Monitor Sentinel recovery
    - Sentinel resumes polling API
    - Sentinel publishes events for both clusters
-6. Verify both clusters eventually reach Ready state
+6. Verify both clusters eventually reach Reconciled=True
 
 **Success Criteria**:
 - Clusters continue progressing during downtime

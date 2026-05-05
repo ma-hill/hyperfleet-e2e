@@ -55,9 +55,9 @@ For MVP phase, HyperFleet API supports the following configuration:
 - Access to GCP project with necessary permissions
 - HyperFleet API endpoint URL
 
-**Cluster Phase Values (MVP):**
-- **`Not Ready`** - One or more adapters are not ready
-- **`Ready`** - All required adapters completed successfully
+**Cluster Condition Values:**
+- **`Reconciled=False`** - One or more adapters have not reported at the current generation
+- **`Reconciled=True`** - All required adapters completed successfully
 
 ---
 
@@ -73,13 +73,13 @@ POST /api/hyperfleet/v1/clusters
 - **Cluster Schema**: [Cluster Object](https://github.com/openshift-hyperfleet/hyperfleet-api-spec/blob/main/schemas/core/openapi.yaml)
 
 **System Response / User Sees:**
-- Cluster created with initial status `Not Ready`
+- Cluster created with initial status `Reconciled=False`
 - Cluster ID returned for tracking
-- Cluster transitions to `Ready` when all adapters complete successfully
+- Cluster transitions to `Reconciled=True` when all adapters complete successfully
 - Can monitor detailed adapter progress via `/clusters/{id}/statuses` endpoint
 
 **Success Criteria:**
-- Cluster reaches `Ready` status
+- Cluster reaches `Reconciled=True`
 - All configures are set to corresponding resources
 - All required adapters (validation, dns, infrastructure) show `Available: True`
 - Zero node for cluster
@@ -112,7 +112,7 @@ POST /api/hyperfleet/v1/clusters
 - API token with insufficient GCP project permissions
 
 **System Response / User Sees:**
-- Cluster created with status `Not Ready`
+- Cluster created with status `Reconciled=False`
 - Infrastructure adapter shows `Available: False`
 - Error message: `{"reason": "PermissionDenied", "message": "Service account lacks compute.networks.create permission in GCP project"}`
 - Can view detailed error via `/clusters/{id}/statuses` endpoint
@@ -123,7 +123,7 @@ POST /api/hyperfleet/v1/clusters
 - GCP project has reached quota limits
 
 **System Response / User Sees:**
-- Cluster created with status `Not Ready`
+- Cluster created with status `Reconciled=False`
 - Adapter shows `Available: False`
 - Error message: `{"reason": "QuotaExceeded", "message": "GCP quota exceeded for resource: CPUS in region us-east1. Current: 100/100"}`
 - Actionable guidance to request quota increase
@@ -133,7 +133,7 @@ POST /api/hyperfleet/v1/clusters
 - Valid cluster configuration
 
 **System Response / User Sees:**
-- Cluster created with initial status `Not Ready`
+- Cluster created with initial status `Reconciled=False`
 - DNS adapter fails after 5 minutes
 - `/clusters/{id}/statuses` shows:
   - Validation adapter: `Available: True`
@@ -145,12 +145,12 @@ POST /api/hyperfleet/v1/clusters
 - User reviews error message via `/clusters/{id}/statuses`
 - User creates missing DNS zone or updates cluster configuration
 - System automatically retries adapter reconciliation
-- Cluster transitions to `Ready` when issue resolved
+- Cluster transitions to `Reconciled=True` when issue resolved
 
 **Success Criteria:**
 - Clear, actionable error messages for all failure scenarios
 - Ability to identify failing component via `/statuses` endpoint
-- HTTP status codes correctly reflect error type (400 for validation, 201 + Not Ready for provisioning failures)
+- HTTP status codes correctly reflect error type (400 for validation, 201 + Reconciled=False for provisioning failures)
 
 ---
 
@@ -167,15 +167,15 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/statuses
 ```
 
 **Supported Monitoring:**
-- **High-level Status**: View cluster phase (Not Ready, Ready)
+- **High-level Status**: View cluster condition (Reconciled=False, Reconciled=True)
 - **Detailed Status**: View individual adapter conditions (Available, Applied, Health)
 - **Adapter Progress**: Track validation, dns ...... adapter execution
 - **Error Details**: Access detailed error messages and failure reasons
 
 **System Response / User Sees:**
-- Cluster phase indicates overall provisioning status
-- A cluster starts as **Not Ready** and transitions to **Ready** when all required adapters complete successfully. It can transition back to    **Not Ready** if the cluster generation changes or if adapters report failures.
-- When `Not Ready`, can inspect `/statuses` endpoint to identify which adapter is blocking
+- Cluster Reconciled condition indicates overall provisioning status
+- A cluster starts as **Reconciled=False** and transitions to **Reconciled=True** when all required adapters complete successfully. It can transition back to **Reconciled=False** if the cluster generation changes or if adapters report failures.
+- When `Reconciled=False`, can inspect `/statuses` endpoint to identify which adapter is blocking
 - Each adapter shows three conditions:
   - **Available**: Work completed successfully (True = complete, False = failed/incomplete/in-progress)
   - **Applied**: Resources created successfully (True = created, False = failed/not-attempted)
@@ -189,7 +189,7 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/statuses
       - If all conditions are True, Available should be True
 - Clear error messages indicating actionable steps (e.g., "Route53 zone not found for domain example.com")
 - Detailed timing information (lastTransitionTime for each condition)
-- Phase Transitions: A cluster starts as **Not Ready** and transitions to **Ready** when all required adapters complete successfully. It can transition back to **Not Ready** if the cluster generation changes or if adapters report failures.
+- Condition Transitions: A cluster starts as **Reconciled=False** and transitions to **Reconciled=True** when all required adapters complete successfully. It can transition back to **Reconciled=False** if the cluster generation changes or if adapters report failures.
 
 **Success Criteria:**
 - Can identify failing adapter within seconds
@@ -208,14 +208,14 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/statuses
 
 **Failure Scenarios:**
 
-### Scenario 1: Cluster Stuck in Not Ready
+### Scenario 1: Cluster Stuck in Reconciled=False
 **User Observes:**
-- Cluster phase remains `Not Ready` for extended period (>30 minutes)
+- Cluster condition remains `Reconciled=False` for extended period (>30 minutes)
 - Polling `/clusters/{id}/statuses` to diagnose
 
 **System Response / User Sees:**
 - The broken-down adapter shows `Available: False`, `Applied: False`
-- Error message: `{"reason": "Timeout", "message": "GCP cluster creation timed out after 25 minutes. Last status: Not ready"}`
+- Error message: `{"reason": "Timeout", "message": "GCP cluster creation timed out after 25 minutes. Last status: Reconciled=False"}`
 - `lastTransitionTime` shows when adapter last attempted reconciliation
 - Clear indication that manual intervention may be required
 
@@ -232,7 +232,7 @@ GET /api/hyperfleet/v1/clusters/non-existent-id
 
 ### Scenario 3: Adapter Reporting Degraded State
 **User Observes:**
-- Cluster phase is `Ready` but health monitoring detects issues
+- Cluster is `Reconciled=True` but health monitoring detects issues
 
 **System Response / User Sees:**
 - `/clusters/{id}/statuses` shows:
@@ -260,25 +260,25 @@ GET /api/hyperfleet/v1/clusters
 ```
 - Filter clusters
 ```bash
-# Filter by phase
-GET /api/hyperfleet/v1/clusters?status.phase="Not%20Ready"
+# Filter by condition
+GET /api/hyperfleet/v1/clusters?status.conditions.Reconciled='False'
 
 # Filter by provider
 GET /api/hyperfleet/v1/clusters?provider=gcp
 
 # Combine multiple filters
-GET /api/hyperfleet/v1/clusters?status.phase=Ready&provider=gcp
+GET /api/hyperfleet/v1/clusters?status.conditions.Reconciled='True'&provider=gcp
 ```
 
 **Supported Configuration:**
-- **Filter by attributes**: Like status.phase,provider,region,name......
-- **Combine Multiple Filters**: Mix phase, labels, provider, region, and name
+- **Filter by attributes**: Like status.conditions,provider,region,name......
+- **Combine Multiple Filters**: Mix conditions, labels, provider, region, and name
 
 **System Response / User Sees:**
 - List response includes pagination fields: kind, page, size, total, items
-- Each cluster shows id, name, spec (provider, region), status (phase), labels, timestamps
+- Each cluster shows id, name, spec (provider, region), status (conditions), labels, timestamps
 - Flexible filtering enables quick cluster location
-- Supports complex operational queries (e.g., "all production GCP clusters in us-east1 that are Ready")
+- Supports complex operational queries (e.g., "all production GCP clusters in us-east1 that are Reconciled")
 - Team-based isolation and multi-tenancy support through label filtering
 
 **Success Criteria:**
@@ -305,13 +305,13 @@ GET /api/hyperfleet/v1/clusters?provider=unsupported-provider
 
 **System Response / User Sees:**
 - HTTP 400 Bad Request
-- Error message: `{"error": "Invalid phase value 'InvalidPhase'. Supported values: Not Ready, Ready"}`
+- Error message: `{"error": "Invalid filter. Use status.conditions.Reconciled='True' or status.conditions.Reconciled='False'"}`
 
 ### Scenario 2: No Results Found
 **User Provides:**
 - Valid filter that matches no clusters
 ```bash
-GET /api/hyperfleet/v1/clusters?phase=Ready
+GET /api/hyperfleet/v1/clusters?status.conditions.Reconciled='True'
 ```
 
 **System Response / User Sees:**
@@ -350,10 +350,10 @@ GET /api/hyperfleet/v1/clusters?phase=Ready
 
 # NodePool Journeys
 
-**Note on NodePool Phase Values (MVP):**
-NodePools use the same phase values as clusters:
-- **`Not Ready`** - One or more adapters are not ready
-- **`Ready`** - All required adapters completed successfully
+**Note on NodePool Condition Values:**
+NodePools use the same condition values as clusters:
+- **`Reconciled=False`** - One or more adapters have not reported at the current generation
+- **`Reconciled=True`** - All required adapters completed successfully
 
 ## Journey 4: Create a New NodePool
 
@@ -373,15 +373,15 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepool_id}
 - **Labels**: Custom key-value pairs (workload:compute, team:platform, etc.)
 
 **System Response / User Sees:**
-- NodePool created with initial status `Not Ready` (HTTP 201 Created)
+- NodePool created with initial status `Reconciled=False` (HTTP 201 Created)
 - NodePool ID returned for tracking
-- NodePool transitions to `Ready` when all adapters complete successfully
+- NodePool transitions to `Reconciled=True` when all adapters complete successfully
 - Can poll nodepool status to monitor provisioning progress
 - Adapters provision compute nodes in the cluster
 - NodePool provisioning completed when all nodes are ready
 
 **Success Criteria:**
-- NodePool reaches `Ready` status
+- NodePool reaches `Reconciled=True`
 - All required adapters show `Available: True`
 - Specified number of nodes provisioned and available in cluster
 
@@ -413,7 +413,7 @@ POST /api/hyperfleet/v1/clusters/{cluster_id}/nodepools
 - GCP project quota insufficient for requested nodes
 
 **System Response / User Sees:**
-- NodePool created with status `Not Ready` (HTTP 201 Created)
+- NodePool created with status `Reconciled=False` (HTTP 201 Created)
 - NodePool adapter shows `Available: False`
 - Error message via `/clusters/{cluster_id}/nodepools/{id}/statuses`:
   - `{"reason": "QuotaExceeded", "message": "Insufficient quota to provision 5 nodes of type n1-standard-4. Required: 20 CPUs, Available: 10 CPUs"}`
@@ -424,7 +424,7 @@ POST /api/hyperfleet/v1/clusters/{cluster_id}/nodepools
 - Valid nodepool configuration
 
 **System Response / User Sees:**
-- NodePool created with initial status `Not Ready`
+- NodePool created with initial status `Reconciled=False`
 - Nodepool adapter fails during node provisioning
 - `/clusters/{cluster_id}/nodepools/{id}/statuses` shows:
   - `Available: False`, `Applied: False`
@@ -447,23 +447,23 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools
 # Filter by labels
 GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?labels=workload:gpu
 
-# Filter by phase
-GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?phase=Ready
+# Filter by condition
+GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?status.conditions.Reconciled='True'
 
 # Combine multiple filters
-GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?labels=workload:gpu&phase=Ready
+GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?labels=workload:gpu&status.conditions.Reconciled='True'
 ```
 
 **Supported Configuration:**
-- **Filter by Phase**: Not Ready, Ready
+- **Filter by Condition**: Reconciled=True, Reconciled=False
 - **Filter by Labels**: Custom key-value pairs (workload:gpu, team:ml, etc.)
-- **Combine Multiple Filters**: Mix phase and labels
+- **Combine Multiple Filters**: Mix conditions and labels
 
 **System Response / User Sees:**
 - List response includes pagination fields: kind, page, size, total, items
-- Each nodepool shows id, cluster_id, spec (nodeCount, machineType), status (phase), labels, timestamps
+- Each nodepool shows id, cluster_id, spec (nodeCount, machineType), status (conditions), labels, timestamps
 - Flexible filtering enables quick nodepool location
-- Support for workload-specific queries (e.g., "all GPU nodepools that are Ready")
+- Support for workload-specific queries (e.g., "all GPU nodepools that are Reconciled")
 - Team-based nodepool management through label filtering
 
 **Success Criteria:**
@@ -495,12 +495,12 @@ GET /api/hyperfleet/v1/clusters/invalid-cluster-id/nodepools
 
 ### Scenario 2: Invalid Filter Parameters
 **User Provides:**
-- Invalid phase value (e.g., `phase=Provisioning` - not supported in MVP)
+- Invalid filter value (e.g., unsupported condition query)
 - Invalid label filter format
 
 **System Response / User Sees:**
 - HTTP 400 Bad Request
-- Error message: `{"error": "Invalid phase value 'Provisioning'. Supported values for MVP: Not Ready, Ready"}`
+- Error message: `{"error": "Invalid filter. Use status.conditions.Reconciled='True' or status.conditions.Reconciled='False'"}`
 - Or: `{"error": "Invalid label filter format. Expected format: key:value"}`
 
 ### Scenario 3: No NodePools Found

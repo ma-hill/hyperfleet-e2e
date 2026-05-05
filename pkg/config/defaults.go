@@ -31,11 +31,11 @@ const (
 
 // Default timeout values
 const (
-	// DefaultClusterReadyTimeout is the default timeout for waiting for a cluster to become ready
-	DefaultClusterReadyTimeout = 30 * time.Minute
+	// DefaultClusterReconciledTimeout is the default timeout for waiting for a cluster to become reconciled
+	DefaultClusterReconciledTimeout = 30 * time.Minute
 
-	// DefaultNodePoolReadyTimeout is the default timeout for waiting for a nodepool to become ready
-	DefaultNodePoolReadyTimeout = 30 * time.Minute
+	// DefaultNodePoolReconciledTimeout is the default timeout for waiting for a nodepool to become reconciled
+	DefaultNodePoolReconciledTimeout = 30 * time.Minute
 
 	// DefaultAdapterProcessingTimeout is the default timeout for waiting for adapter conditions
 	DefaultAdapterProcessingTimeout = 5 * time.Minute

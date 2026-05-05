@@ -135,7 +135,7 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 						clusterID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.Cluster.Ready,
+						h.Cfg.Timeouts.Cluster.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "cluster Reconciled condition should transition to True")
 
@@ -243,7 +243,7 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 						clusterID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.Cluster.Ready,
+						h.Cfg.Timeouts.Cluster.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "cluster Reconciled condition should transition to True before cleanup")
 				})

@@ -94,8 +94,8 @@ var _ = ginkgo.Describe(testName,
             Expect(err).NotTo(HaveOccurred())
             clusterID = *cluster.Id
 
-            ginkgo.By("waiting for cluster to become Ready")
-            err = h.WaitForClusterPhase(ctx, clusterID, openapi.Ready, h.Cfg.Timeouts.Cluster.Ready)
+            ginkgo.By("waiting for cluster to become Reconciled")
+            err = h.WaitForClusterCondition(ctx, clusterID, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue, h.Cfg.Timeouts.Cluster.Reconciled)
             Expect(err).NotTo(HaveOccurred())
         })
 
@@ -174,8 +174,8 @@ ginkgo.BeforeEach(func() {
 ginkgo.By("submitting cluster creation request")
 // ... perform action
 
-ginkgo.By("waiting for cluster to become Ready")
-// ... wait for state
+ginkgo.By("waiting for cluster to become Reconciled")
+// ... wait for condition
 
 ginkgo.By("verifying adapter conditions")
 // ... verify conditions
@@ -210,24 +210,24 @@ ginkgo.AfterEach(func(ctx context.Context) {
 // Basic assertions
 Expect(err).NotTo(HaveOccurred())
 Expect(cluster.ID).NotTo(BeEmpty())
-Expect(cluster.Status.Phase).To(Equal(openapi.Ready))
+Expect(h.HasResourceCondition(cluster.Status.Conditions, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).To(BeTrue())
 
 // Eventually for async operations
 Eventually(func(g Gomega) {
     cluster, err := h.Client.GetCluster(ctx, clusterID)
     g.Expect(err).NotTo(HaveOccurred())
-    g.Expect(cluster.Status.Phase).To(Equal(openapi.Ready))
-}, h.Cfg.Timeouts.Cluster.Ready, h.Cfg.Polling.Interval).Should(Succeed())
+    g.Expect(h.HasResourceCondition(cluster.Status.Conditions, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).To(BeTrue())
+}, h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).Should(Succeed())
 ```
 
 **Important**: Inside `Eventually` closures, use `g.Expect()` instead of `Expect()`
 
 ## Using Helper Functions
 
-### Wait for Cluster Ready
+### Wait for Cluster Reconciled
 
 ```go
-err = h.WaitForClusterPhase(ctx, clusterID, openapi.Ready, h.Cfg.Timeouts.Cluster.Ready)
+err = h.WaitForClusterCondition(ctx, clusterID, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue, h.Cfg.Timeouts.Cluster.Reconciled)
 Expect(err).NotTo(HaveOccurred())
 ```
 
@@ -321,13 +321,13 @@ cluster, err := h.Client.CreateClusterFromPayload(ctx, "testdata/payloads/cluste
 Expect(err).NotTo(HaveOccurred())
 ```
 
-### Wait for Phase Transition
+### Wait for Condition Transition
 
 ```go
 Eventually(func(g Gomega) {
     cluster, err := h.Client.GetCluster(ctx, clusterID)
     g.Expect(err).NotTo(HaveOccurred())
-    g.Expect(cluster.Status.Phase).To(Equal(openapi.Ready))
+    g.Expect(h.HasResourceCondition(cluster.Status.Conditions, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).To(BeTrue())
 }, timeout, pollInterval).Should(Succeed())
 ```
 

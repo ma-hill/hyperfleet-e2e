@@ -110,7 +110,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 						npID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.NodePool.Ready,
+						h.Cfg.Timeouts.NodePool.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "nodepool %d (%s) should reach Reconciled=True", i, npID)
 
@@ -187,7 +187,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 				clusterID,
 				client.ConditionTypeReconciled,
 				openapi.ResourceConditionStatusTrue,
-				h.Cfg.Timeouts.Cluster.Ready,
+				h.Cfg.Timeouts.Cluster.Reconciled,
 			)
 			if err != nil {
 				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Reconciled state before cleanup: %v\n", clusterID, err)

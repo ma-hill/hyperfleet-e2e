@@ -138,8 +138,8 @@ Use `ginkgo.By()` for major steps ONLY. Do NOT use inside `Eventually` closures:
 
 ```go
 // CORRECT
-ginkgo.By("waiting for cluster to become Ready")
-err := h.WaitForClusterPhase(ctx, clusterID, openapi.Ready, timeout)
+ginkgo.By("waiting for cluster to become Reconciled")
+err := h.WaitForClusterCondition(ctx, clusterID, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue, timeout)
 
 // INCORRECT - never do this
 Eventually(func() {
@@ -156,7 +156,7 @@ Use `Eventually` with `g.Expect()` (not `Expect()`):
 Eventually(func(g Gomega) {
     cluster, err := h.Client.GetCluster(ctx, clusterID)
     g.Expect(err).NotTo(HaveOccurred())
-    g.Expect(cluster.Status.Phase).To(Equal(openapi.Ready))
+    g.Expect(h.HasResourceCondition(cluster.Status.Conditions, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).To(BeTrue())
 }, timeout, pollInterval).Should(Succeed())
 ```
 
@@ -205,7 +205,7 @@ Available variables: `.Random`, `.Timestamp`. See `pkg/client/payload.go`.
 
 ### DO
 
-- **Use helper functions**: Prefer `h.WaitForClusterPhase()` over manual polling
+- **Use helper functions**: Prefer `h.WaitForClusterCondition()` over manual polling
 - **Use config values**: `h.Cfg.Timeouts.*` for timeouts, `h.Cfg.Polling.*` for intervals
 - **Store resource IDs**: Save IDs in variables for cleanup
 - **Check errors**: Use `Expect(err).NotTo(HaveOccurred())`
@@ -268,10 +268,10 @@ Expect(err).NotTo(HaveOccurred())
 clusterID = *cluster.Id
 ```
 
-### Wait for Phase
+### Wait for Condition
 
 ```go
-err = h.WaitForClusterPhase(ctx, clusterID, openapi.Ready, h.Cfg.Timeouts.Cluster.Ready)
+err = h.WaitForClusterCondition(ctx, clusterID, client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue, h.Cfg.Timeouts.Cluster.Reconciled)
 Expect(err).NotTo(HaveOccurred())
 ```
 

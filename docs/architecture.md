@@ -37,7 +37,7 @@ HyperFleet E2E creates ephemeral resources per test for complete isolation.
 Test starts
   → Create new Helper instance
   → GetTestCluster() creates cluster via API
-  → Wait for cluster Ready phase
+  → Wait for cluster Reconciled condition
   → Execute test assertions
   → CleanupTestCluster() deletes cluster
 Test ends
@@ -51,7 +51,7 @@ resources:
   keep: false
 timeouts:
   cluster:
-    ready: 5m
+    reconciled: 5m
 ```
 
 ## Core Packages
@@ -127,7 +127,7 @@ Built-in Defaults (lowest priority)
 - `CleanupTestNodePool(ctx, clusterID, nodePoolID)` - Delete nodepool
 
 **Wait Operations**:
-- `WaitForClusterPhase(ctx, clusterID, phase, timeout)` - Poll until cluster reaches phase
+- `WaitForClusterCondition(ctx, clusterID, conditionType, expectedStatus, timeout)` - Poll until cluster condition matches
 - `WaitForAllAdapterConditions(ctx, clusterID, conditions)` - Wait for adapter conditions
 
 **Condition Validation**:

@@ -30,20 +30,20 @@ api:
 
 timeouts:
   cluster:
-    # Maximum time to wait for cluster Ready state
+    # Maximum time to wait for cluster Reconciled condition
     # Recommended: 5m
     #
     # Format: Duration string (e.g., "30m", "1h", "5m")
-    # Can be overridden by: HYPERFLEET_TIMEOUTS_CLUSTER_READY
-    ready: 5m
+    # Can be overridden by: HYPERFLEET_TIMEOUTS_CLUSTER_RECONCILED
+    reconciled: 5m
 
   nodepool:
-    # Maximum time to wait for nodepool Ready state
+    # Maximum time to wait for nodepool Reconciled condition
     # Recommended: 2m
     #
     # Format: Duration string
-    # Can be overridden by: HYPERFLEET_TIMEOUTS_NODEPOOL_READY
-    ready: 2m
+    # Can be overridden by: HYPERFLEET_TIMEOUTS_NODEPOOL_RECONCILED
+    reconciled: 2m
 
   adapter:
     # Maximum time to wait for adapter processing

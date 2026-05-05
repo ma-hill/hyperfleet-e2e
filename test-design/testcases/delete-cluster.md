@@ -756,7 +756,7 @@ curl -X DELETE ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 #### Step 4: Wait and verify cluster remains stuck in soft-deleted state
 
 **Action:**
-- Wait for `2 * h.Cfg.Timeouts.Cluster.Ready` to allow healthy adapters to finalize
+- Wait for `2 * h.Cfg.Timeouts.Cluster.Reconciled` to allow healthy adapters to finalize
 - Poll cluster status periodically:
 ```bash
 curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}

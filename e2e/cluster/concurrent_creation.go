@@ -92,7 +92,7 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 						clusterID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.Cluster.Ready,
+						h.Cfg.Timeouts.Cluster.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "cluster %d (%s) should reach Reconciled=True", i, clusterID)
 

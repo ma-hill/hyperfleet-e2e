@@ -76,7 +76,7 @@ For detailed adapter architecture, see:
 
 **User Journey:**
 1. User creates cluster/nodepool via HyperFleet API
-2. HyperFleet creates resource with status `Not Ready`
+2. HyperFleet creates resource with status `Reconciled=False`
 3. **Adapter receives CloudEvent** with resource ID
 4. **Adapter fetches resource details** from HyperFleet API
 5. **Precondition evaluation:**
@@ -94,7 +94,7 @@ For detailed adapter architecture, see:
 
 **User Sees:**
 - `/clusters/{id}/statuses` (or `/nodepools/{id}/statuses`) shows adapter status `Applied: True`
-- Resource remains `Not Ready` until work completes
+- Resource remains `Reconciled=False` until work completes
 
 **Success Criteria:**
 - Kubernetes workload created in adapter namespace
@@ -125,19 +125,19 @@ For detailed adapter architecture, see:
 
 **User Sees:**
 - `/clusters/{id}/statuses` (or `/nodepools/{id}/statuses`) shows adapter `Available: True`
-- Resource transitions to `Ready` when all required adapters complete
+- Resource transitions to `Reconciled=True` when all required adapters complete
 - Can proceed with resource usage
 
 **Success Criteria:**
 - Adapter-specific work completed successfully
-- Resource status updated to `Ready`
+- Resource status updated to `Reconciled=True`
 - All adapter conditions show `True`
 
 ---
 
 ### Journey A3: Adapter Skips Work Due to Preconditions Not Met
 
-**Scenario:** Adapter receives event but dependencies not ready yet
+**Scenario:** Adapter receives event but dependencies not reconciled yet
 
 **User Journey:**
 1. **Adapter receives CloudEvent** for resource update
@@ -156,7 +156,7 @@ For detailed adapter architecture, see:
 **User Sees:**
 - `/clusters/{id}/statuses` (or `/nodepools/{id}/statuses`) shows adapter waiting
 - Clear dependency chain visible in status conditions
-- Resource remains `Not Ready`
+- Resource remains `Reconciled=False`
 
 **Success Criteria:**
 - Adapter does not create resources prematurely
@@ -187,7 +187,7 @@ For detailed adapter architecture, see:
 **User Sees:**
 - `/clusters/{id}/statuses` (or `/nodepools/{id}/statuses`) shows adapter failure
 - Error message with actionable details
-- Resource stuck in `Not Ready`
+- Resource stuck in `Reconciled=False`
 - **Troubleshooting:** Platform team resolves infrastructure issue (quota, image registry, etc.)
 
 **Success Criteria:**

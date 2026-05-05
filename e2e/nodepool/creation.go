@@ -153,7 +153,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 						nodepoolID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.NodePool.Ready,
+						h.Cfg.Timeouts.NodePool.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "nodepool Reconciled condition should transition to True")
 
@@ -245,7 +245,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 						nodepoolID,
 						client.ConditionTypeReconciled,
 						openapi.ResourceConditionStatusTrue,
-						h.Cfg.Timeouts.NodePool.Ready,
+						h.Cfg.Timeouts.NodePool.Reconciled,
 					)
 					Expect(err).NotTo(HaveOccurred(), "nodepool Reconciled condition should transition to True")
 				})
@@ -267,7 +267,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 				clusterID,
 				client.ConditionTypeReconciled,
 				openapi.ResourceConditionStatusTrue,
-				h.Cfg.Timeouts.Cluster.Ready,
+				h.Cfg.Timeouts.Cluster.Reconciled,
 			)
 			if err != nil {
 				ginkgo.GinkgoWriter.Printf("WARNING: cluster %s did not reach Reconciled state before cleanup: %v\n", clusterID, err)
