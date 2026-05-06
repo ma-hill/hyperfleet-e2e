@@ -1,6 +1,7 @@
 package labels
 
-// Severity labels - Business Impact Dimension: Describes the severity of failure if the functionality is broken
+// Severity labels - Business Impact Dimension: Describes the severity of failure if the functionality is broken.
+// See test-design/README.md for full classification criteria, decision flowchart, and examples.
 const (
 	Tier0 = "tier0" // Critical: Core user journey broken, fix immediately, blocks release
 	Tier1 = "tier1" // Major: Important features affected, should be addressed

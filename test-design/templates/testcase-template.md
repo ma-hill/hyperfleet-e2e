@@ -5,7 +5,7 @@ TEST CASE STANDARDS:
 - File location: testcases/{component}/{test-name}.md
 - Use lowercase with hyphens (kebab-case)
 
-See test-design/README.md for complete standards.
+See test-design/README.md for complete standards and tier classification guide.
 -->
 
 # Feature: [Feature Name]
