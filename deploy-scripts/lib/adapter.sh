@@ -164,6 +164,11 @@ install_adapter_instance() {
   local topic="${ADAPTER_TOPIC:-${NAMESPACE}-${resource_type}}"
   local dead_letter_topic="${ADAPTER_DEAD_LETTER_TOPIC:-${NAMESPACE}-${resource_type}-dlq}"
 
+  if [[ "${ADAPTER_BROKER_TYPE}" == "rabbitmq" && -z "${ADAPTER_BROKER_RABBITMQ_URL}" ]]; then
+    log_error "ADAPTER_BROKER_RABBITMQ_URL must be set when ADAPTER_BROKER_TYPE=rabbitmq"
+    return 1
+  fi
+
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would install adapter with:"
     log_info "  Release name: ${release_name}"
@@ -191,6 +196,7 @@ install_adapter_instance() {
     --set "image.registry=${IMAGE_REGISTRY}"
     --set "image.repository=${ADAPTER_IMAGE_REPO}"
     --set "image.tag=${ADAPTER_IMAGE_TAG}"
+    --set "broker.type=${ADAPTER_BROKER_TYPE}"
     --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
     --set "broker.googlepubsub.createTopicIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
     --set "broker.googlepubsub.createSubscriptionIfMissing=${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING}"
@@ -199,6 +205,18 @@ install_adapter_instance() {
     --set "broker.googlepubsub.deadLetterTopic=${dead_letter_topic}"
     --labels "adapter-resource-type=${resource_type},adapter-name=${adapter_name}"
   )
+
+  if [[ "${ADAPTER_BROKER_TYPE}" == "rabbitmq" && -n "${ADAPTER_BROKER_RABBITMQ_URL}" ]]; then
+    local rabbitmq_queue="${ADAPTER_RABBITMQ_QUEUE:-${subscription_id}}"
+    local rabbitmq_exchange="${ADAPTER_RABBITMQ_EXCHANGE:-${topic}}"
+    local rabbitmq_routing_key="${ADAPTER_RABBITMQ_ROUTING_KEY:-#}"
+    helm_cmd+=(
+      --set "broker.rabbitmq.url=${ADAPTER_BROKER_RABBITMQ_URL}"
+      --set "broker.rabbitmq.queue=${rabbitmq_queue}"
+      --set "broker.rabbitmq.exchange=${rabbitmq_exchange}"
+      --set "broker.rabbitmq.routingKey=${rabbitmq_routing_key}"
+    )
+  fi
 
   log_info "Executing Helm command:"
   log_info "${helm_cmd[*]}"

@@ -65,12 +65,15 @@ SENTINEL_IMAGE_REPO="${SENTINEL_IMAGE_REPO:-ci/hyperfleet-sentinel}"
 SENTINEL_IMAGE_TAG="${SENTINEL_IMAGE_TAG:-latest}"
 SENTINEL_BROKER_TYPE="${SENTINEL_BROKER_TYPE:-googlepubsub}"
 SENTINEL_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING="${SENTINEL_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING:-true}"
+SENTINEL_BROKER_RABBITMQ_URL="${SENTINEL_BROKER_RABBITMQ_URL:-}"
 
 # Adapter Component
 ADAPTER_IMAGE_REPO="${ADAPTER_IMAGE_REPO:-ci/hyperfleet-adapter}"
 ADAPTER_IMAGE_TAG="${ADAPTER_IMAGE_TAG:-latest}"
+ADAPTER_BROKER_TYPE="${ADAPTER_BROKER_TYPE:-googlepubsub}"
 ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING="${ADAPTER_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING:-true}"
 ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING="${ADAPTER_GOOGLEPUBSUB_CREATE_SUBSCRIPTION_IF_MISSING:-true}"
+ADAPTER_BROKER_RABBITMQ_URL="${ADAPTER_BROKER_RABBITMQ_URL:-}"
 
 # HyperFleet API Configuration
 API_BASE_URL="${API_BASE_URL:-http://hyperfleet-api:8000}"
@@ -185,6 +188,12 @@ ENVIRONMENT VARIABLES:
     - ADAPTERS_FILE_DIR                      Base directory for adapter test data (default: TESTDATA_DIR/adapter-configs)
     - API_ADAPTERS_CLUSTER                   Adapters for API cluster config (set per test case)
     - API_ADAPTERS_NODEPOOL                  Adapters for API nodepool config (set per test case)
+
+    RabbitMQ broker (must be provisioned externally before running this script):
+    - SENTINEL_BROKER_TYPE=rabbitmq          Use RabbitMQ instead of Google Pub/Sub for Sentinel
+    - SENTINEL_BROKER_RABBITMQ_URL           RabbitMQ AMQP URL for Sentinel (e.g., amqp://user:pass@host:5672/)
+    - ADAPTER_BROKER_TYPE=rabbitmq           Use RabbitMQ instead of Google Pub/Sub for Adapters
+    - ADAPTER_BROKER_RABBITMQ_URL            RabbitMQ AMQP URL for Adapters
 
 EXAMPLES:
     # Install all components with default settings

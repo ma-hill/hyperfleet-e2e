@@ -21,6 +21,11 @@ install_sentinel_instance() {
   # Determine API base URL
   local api_url="${API_BASE_URL}"
 
+  if [[ "${SENTINEL_BROKER_TYPE}" == "rabbitmq" && -z "${SENTINEL_BROKER_RABBITMQ_URL}" ]]; then
+    log_error "SENTINEL_BROKER_RABBITMQ_URL must be set when SENTINEL_BROKER_TYPE=rabbitmq"
+    return 1
+  fi
+
   if [[ "${DRY_RUN}" == "true" ]]; then
     log_info "[DRY-RUN] Would install ${component_name} with:"
     log_info "  Release name: ${release_name}"
@@ -59,6 +64,10 @@ install_sentinel_instance() {
     --set "broker.googlepubsub.projectId=${GCP_PROJECT_ID}"
     --set "broker.googlepubsub.createTopicIfMissing=${SENTINEL_GOOGLEPUBSUB_CREATE_TOPIC_IF_MISSING}"
   )
+
+  if [[ "${SENTINEL_BROKER_TYPE}" == "rabbitmq" && -n "${SENTINEL_BROKER_RABBITMQ_URL}" ]]; then
+    helm_cmd+=(--set "broker.rabbitmq.url=${SENTINEL_BROKER_RABBITMQ_URL}")
+  fi
 
   # Add message_data.owner_references configuration for nodepools resource type
   # This enables the sentinel to include ownerReferences from the Kubernetes resource

@@ -7,6 +7,7 @@ This guide explains how to write E2E tests for HyperFleet.
 ### 1. Understand the Test Structure
 
 Tests are organized by resource type:
+
 ```text
 e2e/
 ├── e2e.go              # Test suite registration
@@ -19,12 +20,14 @@ e2e/
 ### 2. Read Existing Tests
 
 Start by reading existing tests to understand the patterns:
+
 - [`e2e/cluster/creation.go`](../e2e/cluster/creation.go) - Cluster creation example
 - [`e2e/nodepool/creation.go`](../e2e/nodepool/creation.go) - NodePool creation example
 
 ### 3. Prepare Test Data
 
 Test payloads are stored in `testdata/payloads/`:
+
 ```
 testdata/payloads/
 ├── clusters/
@@ -38,6 +41,7 @@ testdata/payloads/
 Payload files support Go template syntax for dynamic values. This prevents naming conflicts when running tests multiple times in long-running environments.
 
 **Example** (`testdata/payloads/clusters/cluster-request.json`):
+
 ```json
 {
   "kind": "Cluster",
@@ -72,7 +76,7 @@ import (
     . "github.com/onsi/gomega"
 
     "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
-	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
+ "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
     "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
     "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -129,9 +133,11 @@ var lifecycleTestName = "[Suite: cluster] Full Cluster Creation Flow"
 All tests must use labels for categorization. See `pkg/labels/labels.go` for complete definitions.
 
 **Required labels (1)**:
+
 - **Severity**: `Tier0` | `Tier1` | `Tier2`
 
 **Optional labels**:
+
 - **Scenario**: `Negative` | `Performance`
 - **Functionality**: `Upgrade`
 - **Constraint**: `Disruptive` | `Slow`
@@ -279,6 +285,7 @@ touch e2e/nodepool/my-new-test.go
 ### 2. Follow the Template
 
 Copy from existing tests and modify:
+
 - Change test name and ID
 - Update labels
 - Implement test logic
@@ -348,6 +355,40 @@ for _, adapter := range statuses.Items {
     hasAvailable := h.HasCondition(adapter.Conditions, client.ConditionTypeAvailable, openapi.True)
     Expect(hasAvailable).To(BeTrue(), "adapter %s should have Available=True", adapterName)
 }
+```
+
+### Running a development environment with custom dev images and RabbitMQ
+
+While in development, it is common to use custom images for components (api, sentinel, adapters) instead of the CI images.
+
+Is also convenient to use RabbitMQ to avoid dealing with GCP credentials for Pub/Sub
+
+RabbitMQ has to be installed beforehand, you can use the `hyperfleet-infra` repository to execute:
+
+```
+make install-rabbitmq NAMESPACE=rabbitmq
+```
+
+Then you can deploy the e2e test components with support for RabbitMQ and custom images executing:
+
+```
+SENTINEL_BROKER_RABBITMQ_URL="amqp://guest:guest@rabbitmq.rabbitmq:5672" \
+ADAPTER_BROKER_RABBITMQ_URL="amqp://guest:guest@rabbitmq.rabbitmq:5672" \  ADAPTER_BROKER_TYPE=rabbitmq \
+SENTINEL_BROKER_TYPE=rabbitmq \
+./deploy-scripts/deploy-clm.sh --action install \
+--namespace <your-namespace> \
+--image-registry quay.io/<your-user> \
+--api-image-repo hyperfleet-api \
+--api-image-tag <dev-xxx> \
+--sentinel-image-repo hyperfleet-sentinel \
+--sentinel-image-tag <dev-yyy> \
+--adapter-image-repo hyperfleet-adapter \
+--adapter-image-tag <dev-zzz> \
+--api-base-url http://hyperfleet-api:8000 \
+--api-adapters-cluster cl-namespace,cl-maestro,cl-deployment,cl-job \
+--api-adapters-nodepool np-configmap \
+--cluster-tier0-adapters cl-namespace,cl-maestro,cl-deployment,cl-job,cl-invalid-resource,cl-precondition-error \
+--nodepool-tier0-adapters np-configmap
 ```
 
 ## Next Steps
