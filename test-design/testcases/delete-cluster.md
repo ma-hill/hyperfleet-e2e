@@ -285,7 +285,7 @@ This test validates that after a cluster is soft-deleted, it remains queryable v
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -393,7 +393,7 @@ This test validates that calling DELETE on a cluster that has already been soft-
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -474,7 +474,7 @@ This test validates that the API rejects mutation requests (PATCH) to clusters t
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-28 |
@@ -566,7 +566,7 @@ This test validates that creating new subresources (nodepools) under a soft-dele
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-16 |
@@ -654,7 +654,7 @@ This test validates that sending a DELETE request for a cluster ID that does not
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -931,7 +931,7 @@ This test validates that when multiple DELETE requests for the same cluster are 
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-16 |
 | **Updated** | 2026-04-16 |
@@ -1036,7 +1036,7 @@ This test validates the adapter-side "NotFound as success" semantics. When the m
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-16 |
 | **Updated** | 2026-04-28 |
@@ -1152,7 +1152,7 @@ This test validates the interaction between update and delete workflows. When a 
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-16 |
 | **Updated** | 2026-04-16 |
@@ -1263,7 +1263,7 @@ This test validates that after a cluster is fully deleted (hard-deleted from the
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-16 |
 | **Updated** | 2026-04-16 |
@@ -1387,7 +1387,7 @@ This test validates that soft-deleted clusters (with `deleted_time` set) remain 
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-17 |
 | **Updated** | 2026-04-28 |

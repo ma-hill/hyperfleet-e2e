@@ -143,7 +143,7 @@ This test validates isolation between sibling nodepools during deletion. When on
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -248,7 +248,7 @@ This test validates that calling DELETE on a nodepool that has already been soft
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -332,7 +332,7 @@ This test validates that sending a DELETE request for a nodepool ID that does no
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-15 |
@@ -400,7 +400,7 @@ This test validates that the API rejects mutation requests (PATCH) to nodepools 
 | **Pos/Neg** | Negative |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-15 |
 | **Updated** | 2026-04-28 |
@@ -501,7 +501,7 @@ This test validates that after a nodepool is soft-deleted, it remains queryable 
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-17 |
 | **Updated** | 2026-04-28 |

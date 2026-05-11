@@ -136,7 +136,7 @@ This test validates that a PATCH request that only modifies a nodepool's `labels
 | **Pos/Neg** | Positive |
 | **Priority** | Tier1 |
 | **Status** | Draft |
-| **Automation** | Not Automated |
+| **Automation** | Automated |
 | **Version** | Post-MVP |
 | **Created** | 2026-04-17 |
 | **Updated** | 2026-04-20 |

@@ -11,5 +11,8 @@ const (
 	ResourceTypeClusters  = "clusters"
 	ResourceTypeNodepools = "nodepools"
 
+	SentinelClustersRelease  = "sentinel-clusters"
+	SentinelNodePoolsRelease = "sentinel-nodepools"
+
 	defaultGCPProjectID = "hcm-hyperfleet"
 )
