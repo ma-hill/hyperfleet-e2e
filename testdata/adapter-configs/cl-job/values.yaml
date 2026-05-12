@@ -10,9 +10,6 @@ adapterTaskConfig:
   files:
     task-config.yaml: cl-job/adapter-task-config.yaml
     job.yaml: cl-job/adapter-task-resource-job.yaml
-    job-serviceaccount.yaml: cl-job/adapter-task-resource-job-serviceaccount.yaml
-    job-role.yaml: cl-job/adapter-task-resource-job-role.yaml
-    job-rolebinding.yaml: cl-job/adapter-task-resource-job-rolebinding.yaml
 
 broker:
   create: true
@@ -31,9 +28,4 @@ image:
 rbac:
    resources:
      - namespaces
-     - serviceaccounts
-     - roles
-     - rolebindings
      - jobs
-     - jobs/status
-     - pods

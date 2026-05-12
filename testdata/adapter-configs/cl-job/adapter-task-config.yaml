@@ -6,10 +6,6 @@ params:
     source: "event.id"
     type: "string"
     required: true
-  - name: "jobSleepDuration"
-    source: "env.JOB_SLEEP_DURATION"
-    type: "string"
-    default: "1"
 
 # Preconditions with valid operators and CEL expressions
 preconditions:
@@ -25,8 +21,6 @@ preconditions:
         field: "name"
       - name: "generationSpec"
         field: "generation"
-      - name: "simulateResult"     # possible values: success (default), failure, hang, crash, invalid-json, missing-status
-        field: "simulateResult"
       - name: "is_deleting"
         expression: "has(clusterStatus.deleted_time)"
       - name: "clusterNotReconciled"
@@ -59,60 +53,7 @@ preconditions:
 
 # Resources with valid K8s manifests
 resources:
-  #  the following configuration is for a job that will be created in the cluster
-  # in the namespace created above
-  # it will require a service account to be created in that namespace as well as a role and rolebinding
-  - name: "jobServiceAccount"
-    transport:
-      client: "kubernetes"
-    manifest:
-      ref: "/etc/adapter/job-serviceaccount.yaml"
-    discovery:
-      namespace: "{{ .clusterId }}"
-      by_selectors:
-        label_selector:
-          hyperfleet.io/resource-type: "service-account"
-          hyperfleet.io/cluster-id: "{{ .clusterId }}"
-    lifecycle:
-      delete:
-        propagationPolicy: Background
-        when:
-          expression: "is_deleting"
-
-  - name: "jobRole"
-    transport:
-      client: "kubernetes"
-    manifest:
-      ref: "/etc/adapter/job-role.yaml"
-    discovery:
-      namespace: "{{ .clusterId }}"
-      by_selectors:
-        label_selector:
-          hyperfleet.io/cluster-id: "{{ .clusterId }}"
-          hyperfleet.io/resource-type: "role"
-    lifecycle:
-      delete:
-        propagationPolicy: Background
-        when:
-          expression: "is_deleting"
-
-  - name: "jobRolebinding"
-    transport:
-      client: "kubernetes"
-    manifest:
-      ref: "/etc/adapter/job-rolebinding.yaml"
-    discovery:
-      namespace: "{{ .clusterId }}"
-      by_selectors:
-        label_selector:
-          hyperfleet.io/cluster-id: "{{ .clusterId }}"
-          hyperfleet.io/resource-type: "role-binding"
-    lifecycle:
-      delete:
-        propagationPolicy: Background
-        when:
-          expression: "is_deleting"
-
+  # Hello-world job created in the cluster namespace
   - name: "testJob"
     transport:
       client: "kubernetes"
@@ -131,7 +72,7 @@ resources:
           expression: "is_deleting"
 
 # Post-processing with valid CEL expressions
-# This example contains multiple resources, we will only report on the conditions of the jobNamespace not to overcomplicate the example
+# Reports Applied, Available, and Health conditions for the hello-world job
 post:
   payloads:
     - name: "clusterStatusPayload"
@@ -153,26 +94,33 @@ post:
                 has(resources.testJob)
                   ? "testJob manifest applied successfully"
                   : "testJob is pending to be applied"
-          # Available: Check job status conditions
+          # Available: True when the job has completed successfully
           - type: "Available"
             status:
               expression: |
                 has(resources.testJob) ?
-                 ( resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Available")
-                  ? resources.testJob.status.conditions.filter(c, c.type == "Available")[0].status : "False")
-                 : "False"
+                  ( resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Complete")
+                    ? resources.testJob.status.conditions.filter(c, c.type == "Complete")[0].status
+                    : "False")
+                  : "False"
             reason:
               expression: |
-                resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Available")
-                  ? resources.testJob.status.conditions.filter(c, c.type == "Available")[0].reason
-                  : resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Failed") ? "testJobFailed"
-                       : resources.?testJob.?status.hasValue() ? "testJobInProgress" : "testJobPending"
+                resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Complete")
+                  ? "JobComplete"
+                  : resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Failed")
+                    ? "JobFailed"
+                    : resources.?testJob.?status.hasValue()
+                      ? "JobRunning"
+                      : "JobPending"
             message:
               expression: |
-                resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Available")
-                  ? resources.testJob.status.conditions.filter(c, c.type == "Available")[0].message
-                  : resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Failed") ? "testJob failed"
-                       : resources.?testJob.?status.hasValue() ? "testJob in progress" : "testJob is pending"
+                resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Complete")
+                  ? "Hello-world job completed successfully"
+                  : resources.?testJob.?status.?conditions.orValue([]).exists(c, c.type == "Failed")
+                    ? "Hello-world job failed"
+                    : resources.?testJob.?status.hasValue()
+                      ? "Hello-world job is running"
+                      : "Hello-world job is pending"
           # Health: Adapter execution status (runtime)
           - type: "Health"
             status:
@@ -208,21 +156,18 @@ post:
                   && adapter.?executionStatus.orValue("") == "success"
                   && !adapter.?resourcesSkipped.orValue(false)
                   && !resources.?testJob.hasValue()
-                  && !resources.?jobServiceAccount.hasValue()
-                  && !resources.?jobRole.hasValue()
-                  && !resources.?jobRolebinding.hasValue()
                 ? "True"
                 : "False"
             reason:
               expression: |
                 !is_deleting ? "NotDeleting"
-                : !resources.?testJob.hasValue() && !resources.?jobServiceAccount.hasValue() && !resources.?jobRole.hasValue() && !resources.?jobRolebinding.hasValue()
+                : !resources.?testJob.hasValue()
                   ? "CleanupConfirmed"
                   : "CleanupInProgress"
             message:
               expression: |
                 !is_deleting ? "Resource not marked for deletion"
-                : !resources.?testJob.hasValue() && !resources.?jobServiceAccount.hasValue() && !resources.?jobRole.hasValue() && !resources.?jobRolebinding.hasValue()
+                : !resources.?testJob.hasValue()
                   ? "All resources deleted; cleanup confirmed"
                   : "Deletion in progress; waiting for resources to be removed"
         # Event generation ID metadata field needs to use expression to avoid interpolation issues
