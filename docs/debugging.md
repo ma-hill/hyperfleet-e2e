@@ -173,7 +173,7 @@ flowchart TD
 
 Ginkgo reports failures with the full `Describe/Context/It` path. Here is an example of what a timeout failure looks like:
 
-```
+```text
 [FAILED] Timed out after 300.012s.
 The function passed to Eventually never succeeded.
 
@@ -234,7 +234,7 @@ Error code format: `HYPERFLEET-{CATEGORY}-{NUMBER}`
 
 The E2E client's `handleHTTPResponse` function (`pkg/client/client.go`) converts all non-expected HTTP responses into **plain string errors**. This is important for debugging because the API returns structured RFC 9457 JSON, but by the time it reaches your test output, it's a single flat string:
 
-```
+```text
 unexpected status code 404 for get cluster: {"code":"HYPERFLEET-NTF-002","detail":"cluster not found",...}
 ```
 
@@ -245,7 +245,8 @@ The implication: you cannot programmatically distinguish error types in test ass
 3. **The embedded JSON** — parse it visually to find `code` (e.g., `HYPERFLEET-NTF-002`) and `detail` for the specific error
 
 For validation errors (400/422), the embedded JSON may include a field-level `errors` array showing exactly which fields failed:
-```
+
+```text
 unexpected status code 400 for create cluster: {"code":"HYPERFLEET-VAL-001",...,"errors":[{"field":"spec.name","constraint":"required","message":"Cluster name is required"}]}
 ```
 
@@ -404,7 +405,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TD
-    A["Test stuck waiting<br/>for adapter condition"] --> B["GET /api/hyperfleet/v1/clusters/{id}<br/>Find adapter with available=False"]
+    A["Test stuck waiting<br/>for adapter condition"] --> B["GET /api/hyperfleet/v1/clusters/{id}<br/>Find adapter with Available=False"]
     B --> C["GET /api/hyperfleet/v1/clusters/{id}/statuses<br/>Read conditions for that adapter"]
     C --> D{observed_generation<br/>== cluster.generation?}
     D -->|No| E["Adapter hasn't received latest event.<br/>Check Sentinel logs and Broker."]
@@ -422,7 +423,7 @@ flowchart TD
 
 ### Example: Reading the Statuses Response
 
-`GET /api/hyperfleet/v1/clusters/{clusterId}/statuses` returns detailed per-adapter conditions:
+`GET /api/hyperfleet/v1/clusters/{id}/statuses` returns detailed per-adapter conditions:
 
 ```json
 {
@@ -458,7 +459,7 @@ In this example, `cl-job` is the stuck adapter — its `Available` is `False` wi
 
 The adapter framework executes in four phases:
 
-```
+```text
 ParamExtraction → Preconditions → Resources → PostActions
 ```
 
@@ -517,7 +518,7 @@ flowchart LR
 | Parameter | Default | Env Var |
 |-----------|---------|---------|
 | Cluster reconciled | 30m | `HYPERFLEET_TIMEOUTS_CLUSTER_RECONCILED` |
-| Nodepool reconciled | 30m | `HYPERFLEET_TIMEOUTS_NODEPOOL_RECONCILED` |
+| NodePool reconciled | 30m | `HYPERFLEET_TIMEOUTS_NODEPOOL_RECONCILED` |
 | Adapter processing | 5m | `HYPERFLEET_TIMEOUTS_ADAPTER_PROCESSING` |
 | Polling interval | 10s | `HYPERFLEET_POLLING_INTERVAL` |
 
