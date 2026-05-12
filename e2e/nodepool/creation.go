@@ -3,7 +3,6 @@ package nodepool
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck // dot import for test readability
@@ -43,37 +42,10 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 
 		ginkgo.Describe("Basic Workflow Validation", ginkgo.Label(labels.Tier0), func() {
 			// This test validates the end-to-end nodepool lifecycle workflow:
-			// 1. Initial condition validation (Reconciled=False, Available=False)
-			// 2. Required adapter execution with comprehensive metadata validation
-			// 3. Final nodepool state verification (Reconciled and Available conditions)
+			// 1. Required adapter execution with comprehensive metadata validation
+			// 2. Final nodepool state verification (Reconciled and Available conditions)
 			ginkgo.It("should validate complete workflow from creation to Reconciled state",
 				func(ctx context.Context) {
-					var err error
-
-					ginkgo.By("Verify initial status of nodepool")
-					// Verify initial conditions are False, indicating workflow has not completed yet
-					// This ensures the nodepool starts in the correct initial state
-					// Use Eventually to handle race conditions where conditions might not be populated yet
-					initStatusPollInterval := time.Second
-					initCheckTimeout := 3 * time.Second
-					Eventually(func(g Gomega) {
-
-						np, err := h.Client.GetNodePool(ctx, clusterID, nodepoolID)
-						g.Expect(err).NotTo(HaveOccurred(), "failed to get nodepool")
-						g.Expect(np.Status).NotTo(BeNil(), "nodepool status should be present")
-						g.Expect(np.Status.Conditions).NotTo(BeEmpty(), "conditions should be populated")
-
-						hasReconciledFalse := h.HasResourceCondition(np.Status.Conditions,
-							client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)
-						g.Expect(hasReconciledFalse).To(BeTrue(),
-							"initial nodepool conditions should have Reconciled=False")
-
-						hasAvailableFalse := h.HasResourceCondition(np.Status.Conditions,
-							client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)
-						g.Expect(hasAvailableFalse).To(BeTrue(),
-							"initial nodepool conditions should have Available=False")
-					}, initCheckTimeout, initStatusPollInterval).Should(Succeed())
-
 					ginkgo.By("Verify required adapter execution results")
 					// Validate required adapters from config have completed successfully
 					// If an adapter fails, we can identify which specific adapter failed

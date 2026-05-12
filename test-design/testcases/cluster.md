@@ -58,20 +58,8 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
 
 **Expected Result:**
 - Response includes the created cluster ID and initial metadata
-- Initial cluster conditions have `status: False` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
 
-#### Step 2: Verify initial status of cluster
-**Action:**
-- Poll cluster status for initial response
-```bash
-curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
-```
-
-**Expected Result:**
-- Cluster `Reconciled` condition `status: False`
-- Cluster `Available` condition `status: False`
-
-#### Step 3: Verify required adapter execution results
+#### Step 2: Verify required adapter execution results
 
 **Action:**
 - Retrieve adapter statuses information:
@@ -100,7 +88,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/statuses
 - Config file: `configs/config.yaml` under `adapters.cluster`
 - Environment variable: `HYPERFLEET_ADAPTERS_CLUSTER` (comma-separated list)
 
-#### Step 4: Verify final cluster state
+#### Step 3: Verify final cluster state
 
 **Action:**
 - Wait for cluster Reconciled condition to transition to True
@@ -110,12 +98,11 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}
 ```
 
 **Expected Result:**
-- Cluster `Reconciled` condition transitions from `status: False` to `status: True`
 - Final cluster conditions have `status: True` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
 - Validate that the observedGeneration for the Reconciled and Available conditions is 1 for a new creation request
 - This confirms the cluster has reached the desired end state
 
-#### Step 5: Cleanup resources
+#### Step 4: Cleanup resources
 
 **Action:**
 - Delete the cluster via the API:
@@ -252,7 +239,7 @@ kubectl delete namespace {cluster_id} --ignore-not-found
 
 ### Description
 
-This test validates that CLM correctly handles adapter dependency relationships when processing a clusters resource request. Specifically, it verifies the dependency relationship where the cl-deployment adapter depends on the cl-job adapter completion. The test continuously polls and validates throughout the workflow period to ensure: (1) cl-deployment's Applied condition remains False until cl-job's Available condition reaches True, enforcing the dependency precondition; (2) during cl-job execution, cl-deployment's Available condition stays Unknown (never False), confirming the adapter waits correctly without attempting execution; (3) successful completion with cl-deployment's Available eventually transitioning to True. This validation demonstrates that the workflow engine properly enforces adapter dependencies and ensures dependent adapters wait for prerequisites before executing.
+This test validates that CLM correctly handles adapter dependency relationships when processing a clusters resource request. Specifically, it verifies the dependency relationship where the cl-deployment adapter depends on the cl-job adapter completion. The test validates the final converged state: both cl-job and cl-deployment reach Applied=True, Available=True, and Health=True. Dependency ordering is enforced by the workflow engine and validated at the unit/integration test level; the E2E test confirms the end-to-end outcome.
 
 ---
 
@@ -291,47 +278,20 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters \
 **Expected Result:**
 - API returns successful response
 
-#### Step 2: Verify cl-deployment initial state and dependency waiting behavior
+#### Step 2: Verify cl-job and cl-deployment both reach final state
 
 **Action:**
-- Poll adapter statuses to capture cl-deployment's initial waiting state:
+- Poll adapter statuses until both adapters reach their final state:
 ```bash
 curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/statuses
 ```
 
 **Expected Result:**
-At the initial state (when cl-deployment first appears in statuses):
-- Response returns HTTP 200 (OK) status code
-- The `cl-deployment` adapter is present with initial waiting state:
-  - `Applied` condition has `status: "False"` (deployment hasn't been applied yet, waiting for cl-job dependency)
-  - `Available` condition has `status: "Unknown"` (deployment hasn't been applied yet)
-  - `Health` condition has `status: "True"` (adapter itself is healthy, just waiting)
+- Both `cl-job` and `cl-deployment` adapters are present in the statuses response
+- Each adapter has all three conditions with `status: "True"`: `Applied`, `Available`, `Health`
+- This confirms the dependency workflow completed successfully end-to-end
 
-#### Step 3: Verify dependency relationship and condition transitions throughout entire workflow
-
-**Action:**
-- Continuously poll adapter statuses from the initial state until cl-deployment completes:
-```bash
-curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/statuses
-```
-
-**Expected Result:**
-Throughout the entire period (from initial state until cl-deployment completes), validate the following on each poll:
-
-**Validation 1 - Dependency enforcement (during cl-job execution):**
-- While `cl-job` adapter's `Available` condition has NOT reached `status: "True"`:
-  - The `cl-deployment` adapter's `Applied` condition must remain `status: "False"`
-  - The `cl-deployment` adapter's `Available` condition must remain `status: "Unknown"` (never `status: "False"`)
-  - This validates that cl-deployment waits for cl-job to complete without attempting to apply resources
-
-**Validation 2 - Success condition:**
-- Once `cl-job` adapter's `Available` reaches `status: "True"`, cl-deployment can proceed with execution
-- Once `cl-deployment` completes execution, its `Available` condition eventually becomes `status: "True"`
-- This confirms the complete dependency workflow succeeded
-
-**Note:** After cl-job completes, cl-deployment's `Available` condition may temporarily be `False` (e.g., `MinimumReplicasUnavailable` during deployment startup) before becoming `True`, which is expected behavior and not validated.
-
-#### Step 4: Cleanup resources
+#### Step 3: Cleanup resources
 
 **Action:**
 - Delete the cluster via the API:

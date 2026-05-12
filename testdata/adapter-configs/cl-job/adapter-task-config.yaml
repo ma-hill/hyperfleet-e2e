@@ -9,7 +9,7 @@ params:
   - name: "jobSleepDuration"
     source: "env.JOB_SLEEP_DURATION"
     type: "string"
-    default: "15"
+    default: "1"
 
 # Preconditions with valid operators and CEL expressions
 preconditions:
