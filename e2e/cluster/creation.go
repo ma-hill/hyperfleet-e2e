@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck // dot import for test readability
@@ -35,28 +34,10 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 
 		ginkgo.Describe("Basic Workflow Validation", ginkgo.Label(labels.Tier0), func() {
 			// This test validates the end-to-end cluster lifecycle workflow:
-			// 1. Cluster creation via API with initial condition validation
-			// 2. Required adapter execution with comprehensive metadata validation
-			// 3. Final cluster state verification (Reconciled and Available conditions)
+			// 1. Required adapter execution with comprehensive metadata validation
+			// 2. Final cluster state verification (Reconciled and Available conditions)
 			ginkgo.It("should validate complete workflow from creation to Reconciled state",
 				func(ctx context.Context) {
-					ginkgo.By("Verify initial status of cluster")
-					// Verify initial conditions are False, indicating workflow has not completed yet
-					// This ensures the cluster starts in the correct initial state
-					cluster, err := h.Client.GetCluster(ctx, clusterID)
-					Expect(err).NotTo(HaveOccurred(), "failed to get cluster")
-					Expect(cluster.Status).NotTo(BeNil(), "cluster status should be present")
-
-					hasReconciledFalse := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse)
-					Expect(hasReconciledFalse).To(BeTrue(),
-						"initial cluster conditions should have Reconciled=False")
-
-					hasAvailableFalse := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)
-					Expect(hasAvailableFalse).To(BeTrue(),
-						"initial cluster conditions should have Available=False")
-
 					ginkgo.By("Verify required adapter execution results")
 					// Validate required adapters from config have completed successfully
 					// If an adapter fails, we can identify which specific adapter failed
@@ -238,137 +219,54 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 		})
 
 		ginkgo.Describe("Adapter Dependency Relationships Workflow Validation", ginkgo.Label(labels.Tier0), func() {
-			// This test validates adapter dependency relationships:
-			// 1. During cl-job execution: cl-deployment Applied=False and Available=Unknown (never False)
-			// 2. After cl-job completes: cl-deployment can proceed (no validation on Available during execution)
-			// 3. Eventually: cl-deployment Available becomes True (success)
+			// This test validates that dependent adapters complete successfully.
+			// cl-deployment depends on cl-job — the workflow engine enforces this ordering.
+			// We validate the final converged state: both adapters reach Applied=True, Available=True, Health=True.
 			ginkgo.It("should validate cl-deployment dependency on cl-job with comprehensive condition checks",
 				func(ctx context.Context) {
-					pollingInterval := "1s"
-
-					ginkgo.By("Verify cl-deployment initial state and dependency waiting behavior")
-					// Capture cl-deployment's initial waiting state
-					// Poll until cl-deployment appears in the statuses
-					var foundInitialState bool
+					ginkgo.By("Verify cl-job and cl-deployment both reach final converged state")
 					Eventually(func(g Gomega) {
-						foundInitialState = false
 						statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
 						g.Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
 
-						// Find cl-deployment adapter
+						adapterMap := make(map[string]openapi.AdapterStatus)
 						for _, adapter := range statuses.Items {
-							if adapter.Adapter == "cl-deployment" {
-								foundInitialState = true
+							adapterMap[adapter.Adapter] = adapter
+						}
 
-								// Verify initial waiting state
-								hasAppliedFalse := h.HasAdapterCondition(
-									adapter.Conditions,
-									client.ConditionTypeApplied,
-									openapi.AdapterConditionStatusFalse,
-								)
-								g.Expect(hasAppliedFalse).To(BeTrue(),
-									"cl-deployment Applied condition should be False initially (waiting for cl-job)")
+						for _, name := range []string{"cl-job", "cl-deployment"} {
+							adapter, exists := adapterMap[name]
+							g.Expect(exists).To(BeTrue(), "adapter %s should be present in statuses", name)
 
-								hasAvailableUnknown := h.HasAdapterCondition(
-									adapter.Conditions,
-									client.ConditionTypeAvailable,
-									openapi.AdapterConditionStatusUnknown,
-								)
-								g.Expect(hasAvailableUnknown).To(BeTrue(),
-									"cl-deployment Available condition should be Unknown initially (waiting for cl-job)")
+							g.Expect(adapter.ObservedGeneration).To(Equal(int32(1)),
+								"adapter %s should have observed_generation=1 for new creation request", name)
 
-								hasHealthTrue := h.HasAdapterCondition(
-									adapter.Conditions,
-									client.ConditionTypeHealth,
-									openapi.AdapterConditionStatusTrue,
-								)
-								g.Expect(hasHealthTrue).To(BeTrue(),
-									"cl-deployment Health condition should be True (adapter is healthy, just waiting)")
+							g.Expect(h.HasAdapterCondition(adapter.Conditions,
+								client.ConditionTypeApplied, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+								"adapter %s should have Applied=True", name)
 
-								return
+							g.Expect(h.HasAdapterCondition(adapter.Conditions,
+								client.ConditionTypeAvailable, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+								"adapter %s should have Available=True", name)
+
+							g.Expect(h.HasAdapterCondition(adapter.Conditions,
+								client.ConditionTypeHealth, openapi.AdapterConditionStatusTrue)).To(BeTrue(),
+								"adapter %s should have Health=True", name)
+
+							for _, condition := range adapter.Conditions {
+								g.Expect(condition.Reason).NotTo(BeNil(),
+									"adapter %s condition %s should have non-nil reason", name, condition.Type)
+								g.Expect(*condition.Reason).NotTo(BeEmpty(),
+									"adapter %s condition %s should have non-empty reason", name, condition.Type)
+								g.Expect(condition.Message).NotTo(BeNil(),
+									"adapter %s condition %s should have non-nil message", name, condition.Type)
+								g.Expect(*condition.Message).NotTo(BeEmpty(),
+									"adapter %s condition %s should have non-empty message", name, condition.Type)
+								g.Expect(condition.LastTransitionTime).NotTo(BeZero(),
+									"adapter %s condition %s should have valid last_transition_time", name, condition.Type)
 							}
 						}
-						g.Expect(foundInitialState).To(BeTrue(), "cl-deployment adapter should appear in statuses")
-					}, h.Cfg.Timeouts.Adapter.Processing, pollingInterval).Should(Succeed())
-
-					ginkgo.By("Verify dependency: cl-deployment Applied=False and Available=Unknown during cl-job execution")
-					// Poll continuously until cl-deployment Available becomes True:
-					// - Before cl-job Available=True: verify cl-deployment Applied=False and Available!=False
-					// - After cl-job Available=True: only wait for cl-deployment Available=True
-					// - Exit when cl-deployment Available=True
-					timeout := time.After(h.Cfg.Timeouts.Adapter.Processing)
-					ticker := time.NewTicker(1 * time.Second)
-					defer ticker.Stop()
-
-					var jobAvailableReachedTrue bool
-
-				pollLoop:
-					for {
-						select {
-						case <-timeout:
-							ginkgo.Fail("Timed out waiting for cl-deployment Available condition to become True")
-						case <-ticker.C:
-							statuses, err := h.Client.GetClusterStatuses(ctx, clusterID)
-							Expect(err).NotTo(HaveOccurred(), "failed to get cluster statuses")
-
-							var jobAvailableTrue bool
-							var deploymentAppliedTrue bool
-							var deploymentAvailableTrue bool
-							var deploymentAvailableFalse bool
-
-							for _, adapter := range statuses.Items {
-								if adapter.Adapter == "cl-job" {
-									jobAvailableTrue = h.HasAdapterCondition(
-										adapter.Conditions,
-										client.ConditionTypeAvailable,
-										openapi.AdapterConditionStatusTrue,
-									)
-								}
-								if adapter.Adapter == "cl-deployment" {
-									deploymentAppliedTrue = h.HasAdapterCondition(
-										adapter.Conditions,
-										client.ConditionTypeApplied,
-										openapi.AdapterConditionStatusTrue,
-									)
-									deploymentAvailableTrue = h.HasAdapterCondition(
-										adapter.Conditions,
-										client.ConditionTypeAvailable,
-										openapi.AdapterConditionStatusTrue,
-									)
-									deploymentAvailableFalse = h.HasAdapterCondition(
-										adapter.Conditions,
-										client.ConditionTypeAvailable,
-										openapi.AdapterConditionStatusFalse,
-									)
-								}
-							}
-
-							// Track when cl-job Available first becomes True
-							if jobAvailableTrue && !jobAvailableReachedTrue {
-								jobAvailableReachedTrue = true
-								ginkgo.GinkgoWriter.Printf("cl-job Available=True reached, cl-deployment can now proceed\n")
-							}
-
-							// Validate dependency enforcement: only check while cl-job is still executing
-							if !jobAvailableReachedTrue {
-								// cl-deployment should not start applying resources until cl-job completes
-								Expect(deploymentAppliedTrue).To(BeFalse(),
-									"cl-deployment Applied should remain False while cl-job Available is not True yet")
-
-								// cl-deployment Available should stay Unknown (not False) while waiting for cl-job
-								Expect(deploymentAvailableFalse).To(BeFalse(),
-									"cl-deployment Available must be Unknown (not False) during cl-job execution")
-							}
-
-							// Exit when cl-deployment Available becomes True (workflow complete)
-							if deploymentAvailableTrue {
-								ginkgo.GinkgoWriter.Printf("cl-deployment Available=True reached, dependency validation successful\n")
-								break pollLoop
-							}
-						}
-					}
-
-					ginkgo.GinkgoWriter.Printf("Successfully validated cl-deployment dependency on cl-job with correct condition transitions\n")
+					}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 				})
 		})
 

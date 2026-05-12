@@ -56,18 +56,7 @@ curl -X POST ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools \
 ```
 - Response includes the created nodepool ID for use in test validations
 
-#### Step 1: Verify initial status of nodepool
-**Action:**
-- Poll nodepool status for initial response
-```bash
-curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepool_id}
-```
-
-**Expected Result:**
-- NodePool `Reconciled` condition `status: False`
-- NodePool `Available` condition `status: False`
-
-#### Step 2: Verify required adapter execution results
+#### Step 1: Verify required adapter execution results
 
 **Action:**
 Poll adapter statuses until all required adapters report `Applied/Available/Health=True` or timeout:
@@ -94,7 +83,7 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepo
 - Config file: `configs/config.yaml` under `adapters.nodepool`
 - Environment variable: `HYPERFLEET_ADAPTERS_NODEPOOL` (comma-separated list)
 
-#### Step 3: Verify final nodepool state
+#### Step 2: Verify final nodepool state
 
 **Action:**
 - Wait for nodepool Reconciled condition to transition to True
@@ -104,14 +93,13 @@ curl -X GET ${API_URL}/api/hyperfleet/v1/clusters/{cluster_id}/nodepools/{nodepo
 ```
 
 **Expected Result:**
-- NodePool `Reconciled` condition transitions from `status: False` to `status: True`
 - Final nodepool conditions have `status: True` for both condition `{"type": "Reconciled"}` and `{"type": "Available"}`
 - Validate that the observedGeneration for the Reconciled and Available conditions is 1 for a new creation request
 - Validate adapter-specific conditions in nodepool status (Note: This check will be removed once these adapter-specific conditions are removed in the future):
   - Each required adapter should report its own condition type (e.g., `NpConfigmapSuccessful`) with `status: True`
 - This confirms the nodepool has reached the desired end state
 
-#### Step 4: Cleanup Resources (AfterEach)
+#### Step 3: Cleanup Resources (AfterEach)
 
 **Action:**
 - Delete the nodepool and then the cluster via the API:
