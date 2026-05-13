@@ -169,8 +169,8 @@ var _ = ginkgo.Describe("[Suite: cluster][negative] Cluster Can Reflect Adapter 
 						"cluster Reconciled condition should remain False")
 
 					g.Expect(h.HasResourceCondition(cl.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
-						"cluster Available condition should remain False")
+						client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusFalse)).To(BeTrue(),
+						"cluster LastKnownReconciled condition should remain False")
 				}, h.Cfg.Polling.Interval*3, h.Cfg.Polling.Interval).Should(Succeed())
 
 				ginkgo.GinkgoWriter.Printf("Verified cluster top-level status: Reconciled=False, Available=False (reflecting adapter failure)\n")

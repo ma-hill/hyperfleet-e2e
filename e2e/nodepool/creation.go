@@ -131,12 +131,12 @@ var _ = ginkgo.Describe("[Suite: nodepool][baseline] NodePool Resource Type Life
 					Expect(hasReconciled).To(BeTrue(), "nodepool should have Reconciled=True condition")
 
 					hasAvailable := h.HasResourceCondition(finalNodePool.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)
-					Expect(hasAvailable).To(BeTrue(), "nodepool should have Available=True condition")
+						client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusTrue)
+					Expect(hasAvailable).To(BeTrue(), "nodepool should have LastKnownReconciled=True condition")
 
-					// Validate observedGeneration for Reconciled and Available conditions
+					// Validate observedGeneration for Reconciled and LastKnownReconciled conditions
 					for _, condition := range finalNodePool.Status.Conditions {
-						if condition.Type == client.ConditionTypeReconciled || condition.Type == client.ConditionTypeAvailable {
+						if condition.Type == client.ConditionTypeReconciled || condition.Type == client.ConditionTypeLastKnownReconciled {
 							Expect(condition.ObservedGeneration).To(Equal(int32(1)),
 								"nodepool condition %s should have observed_generation=1 for new creation request", condition.Type)
 						}

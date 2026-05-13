@@ -122,9 +122,9 @@ var _ = ginkgo.Describe("[Suite: adapter-failures][negative] Adapter framework c
 						"initial cluster conditions should have Reconciled=False")
 
 					hasAvailableFalse := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusFalse)
+						client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusFalse)
 					g.Expect(hasAvailableFalse).To(BeTrue(),
-						"initial cluster conditions should have Available=False")
+						"initial cluster conditions should have LastKnownReconciled=False")
 				}, h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).Should(Succeed())
 
 				ginkgo.By("Verify adapter execution detects failure and reports error")

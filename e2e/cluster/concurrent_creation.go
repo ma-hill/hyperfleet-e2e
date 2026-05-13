@@ -94,9 +94,9 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 					Expect(err).NotTo(HaveOccurred(), "failed to get cluster %d (%s)", i, clusterID)
 
 					hasAvailable := h.HasResourceCondition(cluster.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)
+						client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusTrue)
 					Expect(hasAvailable).To(BeTrue(),
-						"cluster %d (%s) should have Available=True", i, clusterID)
+						"cluster %d (%s) should have LastKnownReconciled=True", i, clusterID)
 
 					ginkgo.GinkgoWriter.Printf("Cluster %d (%s) reached Reconciled=True, Available=True\n", i, clusterID)
 				}

@@ -68,11 +68,11 @@ var _ = ginkgo.Describe("[Suite: nodepool][update] Labels-Only PATCH",
 			Eventually(h.PollNodePoolAdapterStatuses(ctx, clusterID, nodepoolID), h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).
 				Should(helper.HaveAllAdaptersAtGeneration(h.Cfg.Adapters.NodePool, int32(2)))
 
-			ginkgo.By("verifying nodepool reaches Reconciled=True and Available=True")
+			ginkgo.By("verifying nodepool reaches Reconciled=True and LastKnownReconciled=True")
 			Eventually(h.PollNodePool(ctx, clusterID, nodepoolID), h.Cfg.Timeouts.NodePool.Reconciled, h.Cfg.Polling.Interval).
 				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
 			Eventually(h.PollNodePool(ctx, clusterID, nodepoolID), h.Cfg.Timeouts.NodePool.Reconciled, h.Cfg.Polling.Interval).
-				Should(helper.HaveResourceCondition(client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue))
+				Should(helper.HaveResourceCondition(client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusTrue))
 
 			finalNP, err := h.Client.GetNodePool(ctx, clusterID, nodepoolID)
 			Expect(err).NotTo(HaveOccurred())

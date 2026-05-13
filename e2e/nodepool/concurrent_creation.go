@@ -112,9 +112,9 @@ var _ = ginkgo.Describe("[Suite: nodepool][concurrent] Multiple nodepools can co
 					Expect(err).NotTo(HaveOccurred(), "failed to get nodepool %d (%s)", i, npID)
 
 					hasAvailable := h.HasResourceCondition(np.Status.Conditions,
-						client.ConditionTypeAvailable, openapi.ResourceConditionStatusTrue)
+						client.ConditionTypeLastKnownReconciled, openapi.ResourceConditionStatusTrue)
 					Expect(hasAvailable).To(BeTrue(),
-						"nodepool %d (%s) should have Available=True", i, npID)
+						"nodepool %d (%s) should have LastKnownReconciled=True", i, npID)
 
 					ginkgo.GinkgoWriter.Printf("Nodepool %d (%s) reached Reconciled=True, Available=True\n", i, npID)
 				}

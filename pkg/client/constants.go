@@ -18,5 +18,6 @@ const (
 
 // Condition types used by cluster-level resources (clusters, nodepools)
 const (
-	ConditionTypeReconciled = "Reconciled" // Resource is reconciled
+	ConditionTypeReconciled          = "Reconciled"          // Resource is reconciled
+	ConditionTypeLastKnownReconciled = "LastKnownReconciled" // API-computed aggregated condition (renamed from Available)
 )
