@@ -42,7 +42,7 @@ Required after OpenAPI schema updates:
 make generate
 ```
 
-Downloads schema from hyperfleet-api and regenerates `pkg/api/openapi/`.
+Extracts schema from `hyperfleet-api-spec` Go module via `hack/extract-schema/` (uses `embed.FS`) and regenerates `pkg/api/openapi/`.
 
 ### Run E2E Tests
 
@@ -239,7 +239,7 @@ Available variables: `.Random`, `.Timestamp`. See `pkg/client/payload.go`.
 - **Commit without checks**: Always run `make check` before committing
 - **Use `ginkgo.By()` in `Eventually`**: Only use at top-level test steps
 - **Import test packages**: Do NOT import `e2e/*` packages in production code
-- **Edit OpenAPI schema**: Schema is maintained in hyperfleet-api repo
+- **Edit OpenAPI schema**: Schema is maintained in hyperfleet-api-spec repo
 - **Create `WaitFor*` wrapper functions**: Use pollers + custom matchers instead (see Async Operations)
 
 ### DO
@@ -262,14 +262,14 @@ Available variables: `.Random`, `.Timestamp`. See `pkg/client/payload.go`.
 
 ### Updating API Client
 
-When hyperfleet-api changes:
+When hyperfleet-api-spec changes:
 
 ```bash
-# Default (from main branch)
-make generate
+# Bump spec module version
+go get github.com/openshift-hyperfleet/hyperfleet-api-spec@vX.Y.Z
 
-# From specific branch
-OPENAPI_SPEC_REF=release-0.2 make generate
+# Regenerate client code
+make generate
 
 # Verify changes compile
 make build

@@ -43,20 +43,12 @@ help: ## Display this help
 
 ##@ Code Generation
 
-# OpenAPI configuration - download schema from hyperfleet-api
-OPENAPI_SPEC_REF ?= main
-OPENAPI_SPEC_URL ?= https://raw.githubusercontent.com/openshift-hyperfleet/hyperfleet-api/$(OPENAPI_SPEC_REF)/openapi/openapi.yaml
-
 .PHONY: generate
 generate: $(OAPI_CODEGEN) ## Generate API client code from OpenAPI schema
-	@echo "Downloading OpenAPI schema from $(OPENAPI_SPEC_REF)..."
-	@mkdir -p openapi
-	@curl -fsSL $(OPENAPI_SPEC_URL) -o openapi/openapi.yaml || { \
-		echo "Error: Failed to download OpenAPI schema from $(OPENAPI_SPEC_URL)"; \
-		exit 1; \
-	}
-	@echo "Generating API client from OpenAPI schema..."
-	@mkdir -p pkg/api/openapi
+	rm -rf pkg/api/openapi
+	mkdir -p pkg/api/openapi openapi
+	@rm -f openapi/openapi.yaml
+	@$(GO) run -mod=mod github.com/openshift-hyperfleet/hyperfleet-e2e/hack/extract-schema
 	$(OAPI_CODEGEN) --config openapi/oapi-codegen.yaml openapi/openapi.yaml
 	@echo "✓ API client code generated in pkg/api/openapi/"
 
