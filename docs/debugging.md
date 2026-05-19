@@ -18,7 +18,6 @@ For guidance on **writing** tests, see [development.md](development.md). For **r
 8. [Common Patterns](#8-common-patterns)
 9. [Quick Reference](#9-quick-reference)
 
-
 ---
 
 ## 1. System Overview
@@ -302,7 +301,7 @@ Check for orphaned resources:
 kubectl get namespaces | grep -E '^e2e-|^test-'
 
 # Find orphaned ManifestWorks
-kubectl get manifestworks -A
+kubectl get appliedmanifestworks -A
 
 # Check for leftover pods
 kubectl get pods -A | grep hyperfleet
@@ -318,8 +317,16 @@ kubectl delete namespace <namespace-name> --wait=true
 kubectl get namespaces -o name | grep 'e2e-test' | xargs kubectl delete
 
 # Delete ManifestWorks for a specific cluster
-kubectl delete manifestwork -n <namespace> --all
+kubectl delete appliedmanifestwork -n <namespace> --all
 ```
+
+#### Maestro resources
+
+In case maestro DB is populated with many manifestworks, it can be time intensive to delete them all.
+Deleting the appliedmanifestworks k8s objects is not the solution, since maestro will recreate them from the DB data.
+In this case, it can be more convenient to uninstall maestro and install it again.
+
+As reference, deleting 777 maestro entries took >30min in GKE prow cluster
 
 ### Deletion Flow (Production)
 
@@ -493,4 +500,3 @@ For helper functions (pollers, matchers, validation helpers), see [architecture.
 - **Architecture repo:** [openshift-hyperfleet/architecture](https://github.com/openshift-hyperfleet/architecture)
 - **Status guide:** [status-guide.md](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/docs/status-guide.md)
 - **Adapter status contract:** [adapter-status-contract.md](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/components/adapter/framework/adapter-status-contract.md)
-
