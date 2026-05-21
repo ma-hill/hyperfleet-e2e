@@ -572,8 +572,8 @@ This test validates the adapter's behavior when the Maestro server is unreachabl
 |-----------|-----------|
 | **Pos/Neg** | Negative |
 | **Priority** | Tier2 |
-| **Status** | Draft |
-| **Automation** | Not Automated |
+| **Status** | Active |
+| **Automation** | Automated |
 | **Version** | MVP |
 | **Created** | 2026-02-12 |
 | **Updated** | 2026-03-27 |
