@@ -28,6 +28,17 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Cluster Deletion Lifecycle",
 			clusterID, err = h.GetTestCluster(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 			Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
 
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if cluster, err := h.Client.GetCluster(ctx, clusterID); err == nil && cluster.DeletedTime == nil {
+					if _, err := h.Client.DeleteCluster(ctx, clusterID); err != nil {
+						ginkgo.GinkgoWriter.Printf("Warning: API delete failed for cluster %s: %v\n", clusterID, err)
+					}
+				}
+				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+					ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
+				}
+			})
+
 			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
 				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
 		})
@@ -98,20 +109,6 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Cluster Deletion Lifecycle",
 			}
 		})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			if h == nil || clusterID == "" {
-				return
-			}
-			ginkgo.By("cleaning up cluster " + clusterID)
-			if cluster, err := h.Client.GetCluster(ctx, clusterID); err == nil && cluster.DeletedTime == nil {
-				if _, err := h.Client.DeleteCluster(ctx, clusterID); err != nil {
-					ginkgo.GinkgoWriter.Printf("Warning: API delete failed for cluster %s: %v\n", clusterID, err)
-				}
-			}
-			if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-				ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
-			}
-		})
 	},
 )
 
@@ -130,6 +127,17 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Cluster Cascade Deletion",
 			var err error
 			clusterID, err = h.GetTestCluster(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 			Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
+
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if cluster, err := h.Client.GetCluster(ctx, clusterID); err == nil && cluster.DeletedTime == nil {
+					if _, err := h.Client.DeleteCluster(ctx, clusterID); err != nil {
+						ginkgo.GinkgoWriter.Printf("Warning: API delete failed for cluster %s: %v\n", clusterID, err)
+					}
+				}
+				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+					ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
+				}
+			})
 
 			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
 				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
@@ -196,19 +204,5 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Cluster Cascade Deletion",
 				Should(BeEmpty())
 		})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			if h == nil || clusterID == "" {
-				return
-			}
-			ginkgo.By("cleaning up cluster " + clusterID)
-			if cluster, err := h.Client.GetCluster(ctx, clusterID); err == nil && cluster.DeletedTime == nil {
-				if _, err := h.Client.DeleteCluster(ctx, clusterID); err != nil {
-					ginkgo.GinkgoWriter.Printf("Warning: API delete failed for cluster %s: %v\n", clusterID, err)
-				}
-			}
-			if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-				ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
-			}
-		})
 	},
 )

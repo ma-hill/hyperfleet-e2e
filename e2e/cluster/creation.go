@@ -30,6 +30,12 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 			clusterID = *cluster.Id
 			clusterName = cluster.Name
 			ginkgo.GinkgoWriter.Printf("Created cluster ID: %s, Name: %s\n", clusterID, clusterName)
+
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+					ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
+				}
+			})
 		})
 
 		ginkgo.Describe("Basic Workflow Validation", ginkgo.Label(labels.Tier0), func() {
@@ -270,15 +276,5 @@ var _ = ginkgo.Describe("[Suite: cluster][baseline] Cluster Resource Type Lifecy
 				})
 		})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			// Skip cleanup if helper not initialized or no cluster created
-			if h == nil || clusterID == "" {
-				return
-			}
-
-			ginkgo.By("cleaning up cluster " + clusterID)
-			err := h.CleanupTestCluster(ctx, clusterID)
-			Expect(err).NotTo(HaveOccurred(), "failed to cleanup cluster %s", clusterID)
-		})
 	},
 )

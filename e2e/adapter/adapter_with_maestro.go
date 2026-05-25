@@ -34,6 +34,12 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport] Adapter Framework -
 			clusterID = *cluster.Id
 			clusterName = cluster.Name
 			ginkgo.GinkgoWriter.Printf("Created cluster ID: %s, Name: %s\n", clusterID, clusterName)
+
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+					ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
+				}
+			})
 		})
 
 		ginkgo.Describe("Maestro Transport Happy Path", ginkgo.Label(labels.Tier0), func() {
@@ -415,20 +421,6 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport] Adapter Framework -
 				})
 		})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			// Skip cleanup if helper not initialized
-			if h == nil {
-				return
-			}
-
-			// Clean up cluster and all associated resources
-			if clusterID != "" {
-				ginkgo.By("Cleanup test cluster " + clusterID)
-				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-					ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
-				}
-			}
-		})
 	},
 )
 
@@ -445,6 +437,8 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport][negative] Adapter F
 
 		ginkgo.BeforeEach(func(ctx context.Context) {
 			h = helper.New()
+			adapterRelease = ""
+			clusterID = ""
 
 			// Clone adapter Helm chart repository (shared across negative tests)
 			ginkgo.By("Clone adapter Helm chart repository for negative tests")
@@ -468,30 +462,26 @@ var _ = ginkgo.Describe("[Suite: adapter][maestro-transport][negative] Adapter F
 				}
 			})
 
+			// Register adapter and cluster cleanup (vars captured by reference; values set in each It)
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if adapterRelease != "" {
+					ginkgo.By("Uninstall adapter " + adapterRelease)
+					if err := h.UninstallAdapter(ctx, adapterRelease, h.Cfg.Namespace); err != nil {
+						ginkgo.GinkgoWriter.Printf("Warning: failed to uninstall adapter %s: %v\n", adapterRelease, err)
+					}
+				}
+				if clusterID != "" {
+					ginkgo.By("Cleanup test cluster " + clusterID)
+					if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+						ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
+					}
+				}
+			})
+
 			// Set up base deployment options with common fields
 			baseDeployOpts = helper.AdapterDeploymentOptions{
 				Namespace: h.Cfg.Namespace,
 				ChartPath: chartPath,
-			}
-		})
-
-		ginkgo.AfterEach(func(ctx context.Context) {
-			// Clean up in reverse order: adapter first, then cluster
-			// This ensures adapter is uninstalled before cluster cleanup
-			if adapterRelease != "" {
-				ginkgo.By("Uninstall adapter " + adapterRelease)
-				if err := h.UninstallAdapter(ctx, adapterRelease, h.Cfg.Namespace); err != nil {
-					ginkgo.GinkgoWriter.Printf("Warning: failed to uninstall adapter %s: %v\n", adapterRelease, err)
-				} else {
-					ginkgo.GinkgoWriter.Printf("Successfully uninstalled adapter: %s\n", adapterRelease)
-				}
-			}
-
-			if clusterID != "" {
-				ginkgo.By("Cleanup test cluster " + clusterID)
-				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-					ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
-				}
 			}
 		})
 

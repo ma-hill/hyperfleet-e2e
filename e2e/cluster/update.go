@@ -27,6 +27,12 @@ var _ = ginkgo.Describe("[Suite: cluster][update] Cluster Update Lifecycle",
 			Expect(cluster.Id).NotTo(BeNil(), "cluster ID should be generated")
 			clusterID = *cluster.Id
 
+			ginkgo.DeferCleanup(func(ctx context.Context) {
+				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+					ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
+				}
+			})
+
 			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
 				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
 		})
@@ -67,14 +73,5 @@ var _ = ginkgo.Describe("[Suite: cluster][update] Cluster Update Lifecycle",
 			}, h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).Should(Succeed())
 		})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			if h == nil || clusterID == "" {
-				return
-			}
-			ginkgo.By("cleaning up cluster " + clusterID)
-			if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-				ginkgo.GinkgoWriter.Printf("Warning: cleanup failed for cluster %s: %v\n", clusterID, err)
-			}
-		})
 	},
 )

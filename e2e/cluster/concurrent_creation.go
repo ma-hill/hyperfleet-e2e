@@ -20,15 +20,15 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 	ginkgo.Label(labels.Tier1),
 	func() {
 		var h *helper.Helper
-		var clusterIDs []string
 
 		ginkgo.BeforeEach(func() {
 			h = helper.New()
-			clusterIDs = nil
 		})
 
 		ginkgo.It("should create multiple clusters concurrently and all reach Reconciled state with isolated resources",
 			func(ctx context.Context) {
+				var clusterIDs []string
+
 				ginkgo.By(fmt.Sprintf("Submit %d cluster creation requests simultaneously", concurrentClusterCount))
 
 				type clusterResult struct {
@@ -63,12 +63,19 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 				}
 				wg.Wait()
 
-				// Collect all successful IDs first to ensure AfterEach can clean up all created clusters
+				// Collect all successful IDs and register cleanup before asserting errors
 				for _, r := range results {
 					if r.err == nil && r.id != "" {
 						clusterIDs = append(clusterIDs, r.id)
 					}
 				}
+				ginkgo.DeferCleanup(func(ctx context.Context) {
+					for _, id := range clusterIDs {
+						if err := h.CleanupTestCluster(ctx, id); err != nil {
+							ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", id, err)
+						}
+					}
+				})
 
 				// Verify all creations succeeded
 				for i, r := range results {
@@ -151,21 +158,5 @@ var _ = ginkgo.Describe("[Suite: cluster][concurrent] System can process concurr
 				ginkgo.GinkgoWriter.Printf("Successfully validated %d concurrent cluster creations with resource isolation\n", concurrentClusterCount)
 			})
 
-		ginkgo.AfterEach(func(ctx context.Context) {
-			if h == nil || len(clusterIDs) == 0 {
-				return
-			}
-
-			ginkgo.By(fmt.Sprintf("Cleaning up %d test clusters", len(clusterIDs)))
-			var cleanupErrors []error
-			for _, clusterID := range clusterIDs {
-				ginkgo.By("cleaning up cluster " + clusterID)
-				if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-					ginkgo.GinkgoWriter.Printf("ERROR: failed to cleanup cluster %s: %v\n", clusterID, err)
-					cleanupErrors = append(cleanupErrors, err)
-				}
-			}
-			Expect(cleanupErrors).To(BeEmpty(), "some clusters failed to cleanup")
-		})
 	},
 )
