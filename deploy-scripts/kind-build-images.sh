@@ -20,6 +20,11 @@ set -euo pipefail
 PROJECTS_DIR="${PROJECTS_DIR:-${HOME}/projects}"
 CI_REGISTRY="registry.ci.openshift.org/ci"
 KIND_CLUSTER="${KIND_CLUSTER:-kind}"
+CONTAINER_TOOL="${CONTAINER_TOOL:-$(command -v podman 2>/dev/null || command -v docker 2>/dev/null || true)}"
+if [[ -z "${CONTAINER_TOOL}" ]]; then
+  echo "[ERROR] No container tool found (podman or docker). Install one or set CONTAINER_TOOL."
+  exit 1
+fi
 NO_CACHE=""
 
 # The three platform components — each maps 1:1 to a Docker image.
@@ -43,7 +48,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Components: ${COMPONENTS[*]}"
       echo ""
-      echo "Env: PROJECTS_DIR=${PROJECTS_DIR}  KIND_CLUSTER=${KIND_CLUSTER}"
+      echo "Env: PROJECTS_DIR=${PROJECTS_DIR}  KIND_CLUSTER=${KIND_CLUSTER}  CONTAINER_TOOL=${CONTAINER_TOOL}"
       exit 0
       ;;
     -*) echo "Unknown option: $1"; exit 1 ;;
@@ -73,10 +78,14 @@ for name in "${TARGETS[@]}"; do
   fi
 
   echo "[BUILD] ${name}..."
-  docker build ${NO_CACHE} -t "${CI_REGISTRY}/${name}:latest" "${dir}"
+  "${CONTAINER_TOOL}" build ${NO_CACHE} -t "${CI_REGISTRY}/${name}:latest" "${dir}"
 
   echo "[LOAD]  ${name} -> kind..."
-  kind load docker-image "${CI_REGISTRY}/${name}:latest" --name "${KIND_CLUSTER}"
+  if [[ "$(basename "${CONTAINER_TOOL}")" == "podman" ]]; then
+    "${CONTAINER_TOOL}" save "${CI_REGISTRY}/${name}:latest" | kind load image-archive /dev/stdin --name "${KIND_CLUSTER}"
+  else
+    kind load docker-image "${CI_REGISTRY}/${name}:latest" --name "${KIND_CLUSTER}"
+  fi
   echo ""
 done
 

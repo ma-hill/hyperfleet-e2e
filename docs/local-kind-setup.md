@@ -5,7 +5,7 @@ Run E2E tests locally using [kind](https://kind.sigs.k8s.io/) and RabbitMQ — n
 ## Prerequisites
 
 - **Go** 1.25+ — [go.dev](https://go.dev/doc/install)
-- **Docker** — [docker.com](https://www.docker.com/)
+- **Docker** — [docker.com](https://www.docker.com/) or **Podman** — [podman.io](https://podman.io/)
 - **kind** — [kind.sigs.k8s.io](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 - **kubectl** 1.28+ — [kubernetes.io](https://kubernetes.io/docs/tasks/tools/)
 - **helm** 3+ — [helm.sh](https://helm.sh/docs/intro/install/)
@@ -95,11 +95,11 @@ Local kind settings are at the bottom of the file:
 
 ## Troubleshooting
 
-**ImagePullBackOff** — Image not loaded into kind. Run `kind load docker-image <image>`.
+**ImagePullBackOff** — Image not loaded into kind. Run `kind load docker-image <image>`. With Podman: `podman save <image> | kind load image-archive /dev/stdin`.
 
 **db-migrate crashing** — API binary doesn't match Helm chart: `./deploy-scripts/kind-local.sh rebuild --no-cache hyperfleet-api`
 
-**Docker cache stale** — Use `--no-cache` after `git pull`.
+**Container build cache stale** — Use `--no-cache` after `git pull`.
 
 **Connection refused** — Port-forwards died: `./deploy-scripts/kind-local.sh port-forward`
 
