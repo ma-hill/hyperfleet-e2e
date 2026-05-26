@@ -49,11 +49,9 @@ Test ends
 ```yaml
 api:
   url: https://api.hyperfleet.example.com
-resources:
-  keep: false
 timeouts:
   cluster:
-    reconciled: 5m
+    reconciled: 5m   # Default: 30m (see pkg/config/defaults.go)
 ```
 
 ### pkg/config
@@ -202,7 +200,7 @@ Built-in Defaults (lowest priority)
 - Suite timeout management
 
 **Key Functions**:
-- `RunTests(cfg)` - Main entry point for test execution
+- `RunTests(ctx)` - Main entry point for test execution
 - Configures Ginkgo reporters, timeouts, and filters
 - Handles suite-level setup and teardown
 
@@ -228,7 +226,7 @@ Configuration values are applied in this priority order:
                               ↓
 ┌──────────────────────────────────────────────────────────────────┐
 │ 4. Built-in Defaults (lowest priority)                           │
-│    Example: timeout: 30m, poll: 5s                               │
+│    Example: timeout: 30m, poll: 10s                              │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -291,16 +289,11 @@ The framework uses code generation to maintain type-safe API clients.
 The generated client is wrapped by `pkg/client.HyperFleetClient` to provide:
 - Simplified error handling
 - Test-friendly method signatures
-- Automatic retry logic (future)
 - Request/response logging
 
 **Example**:
 ```go
-// Generated client (low-level)
-apiClient := openapi.NewClient(...)
-resp, httpResp, err := apiClient.ClustersAPI.GetCluster(ctx, clusterID).Execute()
-
-// Wrapped client (test-friendly)
+// Wrapped client (test-friendly) — used in tests
 client, _ := client.NewHyperFleetClient(apiURL, nil)
 cluster, err := client.GetCluster(ctx, clusterID)
 ```

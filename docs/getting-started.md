@@ -37,7 +37,7 @@ export HYPERFLEET_API_URL=https://api.hyperfleet.example.com
 **Step 2**: Run tests
 
 ```bash
-./bin/hyperfleet-e2e test --label-filter=critical
+./bin/hyperfleet-e2e test --label-filter=tier0
 ```
 
 **What happens**:
@@ -59,20 +59,20 @@ The framework:
 
 ```bash
 # Run critical tests only
-./bin/hyperfleet-e2e test --label-filter=critical
+./bin/hyperfleet-e2e test --label-filter=tier0
 
 # Run all cluster suite tests
 ./bin/hyperfleet-e2e test --focus "\[Suite: cluster\]"
 
-# Run cluster lifecycle tests
-./bin/hyperfleet-e2e test --label-filter="lifecycle && critical"
+# Run cluster tier0 tests only
+./bin/hyperfleet-e2e test --label-filter="tier0" --focus "\[Suite: cluster\]"
 
 
 # Deep debug mode (add API calls and framework internals)
 ./bin/hyperfleet-e2e test --log-level=debug
 ```
 
-**Note**: The default output already shows detailed test execution steps. If a test fails, you can usually diagnose the issue from the logs without re-running in debug mode. Use `--log-level=debug` when you need to see API calls and framework internals. See [Troubleshooting](troubleshooting.md) for more debugging techniques.
+**Note**: The default output already shows detailed test execution steps. If a test fails, you can usually diagnose the issue from the logs without re-running in debug mode. Use `--log-level=debug` when you need to see API calls and framework internals. See [Debugging Guide](debugging.md) for more debugging techniques.
 
 ## Common Commands
 
@@ -95,8 +95,10 @@ echo $HYPERFLEET_API_URL
 curl -I $HYPERFLEET_API_URL
 ```
 
-**Test timeouts**:
+**Test timeouts**: Increase timeouts via environment variables:
 ```bash
+HYPERFLEET_TIMEOUTS_CLUSTER_RECONCILED=45m make e2e
+```
 
 **Configuration not taking effect**:
 
