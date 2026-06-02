@@ -54,6 +54,7 @@ hyperfleet-e2e/
 │   ├── labels/       - Test label definitions
 │   └── logger/       - Structured logging (slog)
 ├── e2e/              - Test suites
+│   ├── adapter/      - Adapter failover and Maestro tests
 │   ├── cluster/      - Cluster lifecycle tests
 │   └── nodepool/     - NodePool management tests
 ├── testdata/         - Test payloads and fixtures
@@ -111,7 +112,7 @@ Key points:
 - Test files use `.go` extension (NOT `_test.go`)
 - All tests must have labels (Tier0, Tier1, or Tier2)
 - Use `ginkgo.By()` to mark major test steps
-- Clean up resources in `AfterEach`
+- Clean up resources with `DeferCleanup`
 - Use helper functions from `pkg/helper`
 
 ## Common Tasks
@@ -121,11 +122,11 @@ Key points:
 When the HyperFleet API OpenAPI schema changes:
 
 ```bash
-# Regenerate from main branch (default)
-make generate
+# 1. Bump the spec module version in go.mod
+go get github.com/openshift-hyperfleet/hyperfleet-api-spec@vX.Y.Z
 
-# Or from a specific branch/tag
-OPENAPI_SPEC_REF=release-0.2 make generate
+# 2. Regenerate client code from the new spec
+make generate
 ```
 
 ### Build and Test Workflow

@@ -81,7 +81,7 @@ import (
     "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
 
-var testName = "[Suite: cluster] Create Cluster via API"
+var testName = "[Suite: cluster][baseline] Create Cluster via API"
 
 var _ = ginkgo.Describe(testName,
     ginkgo.Label(labels.Tier0),
@@ -98,19 +98,15 @@ var _ = ginkgo.Describe(testName,
             cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
             Expect(err).NotTo(HaveOccurred())
             clusterID = *cluster.Id
+            ginkgo.DeferCleanup(func(ctx context.Context) {
+                if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
+                    ginkgo.GinkgoWriter.Printf("Warning: cleanup failed: %v\n", err)
+                }
+            })
 
             ginkgo.By("waiting for cluster to become Reconciled")
             Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
                 Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
-        })
-
-        ginkgo.AfterEach(func(ctx context.Context) {
-            if h == nil || clusterID == "" {
-                return
-            }
-            if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-                ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
-            }
         })
     },
 )
@@ -121,11 +117,12 @@ var _ = ginkgo.Describe(testName,
 ### 1. Test Name
 
 ```go
-var lifecycleTestName = "[Suite: cluster] Full Cluster Creation Flow"
+var lifecycleTestName = "[Suite: cluster][baseline] Full Cluster Creation Flow"
 ```
 
-- Format: `[Suite: component] Description`
-- Suite represents the HyperFleet component being tested (cluster, nodepool, api, adapter, etc.)
+- Format: `[Suite: component][category] Description`
+- Suite represents the HyperFleet component being tested (cluster, nodepool, adapter)
+- Category describes the test type: `baseline`, `update`, `delete`, `concurrent`, `negative`
 - Use clear, descriptive names
 
 ### 2. Labels
@@ -147,7 +144,7 @@ All tests must use labels for categorization. See `pkg/labels/labels.go` for com
 ```go
 import "github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 
-var testName = "[Suite: cluster] Full Cluster Creation Flow"
+var testName = "[Suite: cluster][baseline] Full Cluster Creation Flow"
 var _ = ginkgo.Describe(testName,
     ginkgo.Label(labels.Tier0),
     func() { ... }
@@ -192,21 +189,23 @@ ginkgo.By("verifying adapter conditions")
 - Makes test output readable
 - **DO NOT** use `ginkgo.By()` inside `Eventually` closures
 
-### 5. AfterEach Cleanup
+### 5. Resource Cleanup
+
+Prefer `ginkgo.DeferCleanup` inline right after resource creation:
 
 ```go
-ginkgo.AfterEach(func(ctx context.Context) {
-    if h == nil || clusterID == "" {
-        return
-    }
+clusterID, err := h.GetTestCluster(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
+Expect(err).NotTo(HaveOccurred())
+ginkgo.DeferCleanup(func(ctx context.Context) {
     if err := h.CleanupTestCluster(ctx, clusterID); err != nil {
-        ginkgo.GinkgoWriter.Printf("Warning: failed to cleanup cluster %s: %v\n", clusterID, err)
+        ginkgo.GinkgoWriter.Printf("Warning: cleanup failed: %v\n", err)
     }
 })
 ```
 
-- Clean up resources after test
-- Skip cleanup if helper not initialized or no cluster created
+- Register cleanup inline right after creating the resource
+- `DeferCleanup` runs in LIFO order and is scoped to the current node
+- Guard against empty IDs to avoid unnecessary cleanup calls
 - Log cleanup failures as warnings
 
 ## Writing Assertions
@@ -297,8 +296,7 @@ Available pollers: see `pkg/helper/pollers.go`. Available matchers: see `pkg/hel
 - Don't use `_test.go` suffix (use `.go`)
 - Don't use `ginkgo.By()` inside `Eventually` closures
 - Don't hardcode timeouts (use config values)
-- Don't skip cleanup (unless debugging)
-- Don't ignore errors
+- Don't skip cleanup
 - Don't create `WaitFor*` wrapper functions that hide `Eventually` — use pollers + matchers instead
 
 ## Adding New Tests
@@ -330,6 +328,7 @@ Tests are automatically registered via the package import in `e2e/e2e.go`:
 package e2e
 
 import (
+    _ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/adapter"
     _ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/cluster"
     _ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/nodepool"
 )
@@ -356,7 +355,7 @@ make build
 ### Create Resource from Payload
 
 ```go
-cluster, err := h.Client.CreateClusterFromPayload(ctx, "testdata/payloads/clusters/cluster-request.json")
+cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 Expect(err).NotTo(HaveOccurred())
 ```
 
@@ -428,6 +427,6 @@ SENTINEL_BROKER_TYPE=rabbitmq \
 ## Next Steps
 
 - **Architecture**: Understand the framework design in [Architecture](architecture.md)
-- **Configuration**: Customize behavior in [Configuration Reference](config.md)
-- **Debug Tests**: Learn debugging techniques in [Troubleshooting Guide](troubleshooting.md)
-- **CLI Reference**: Full command documentation in [CLI Reference](cli-reference.md)
+- **Configuration**: See detailed comments in `configs/config.yaml`
+- **Debug Tests**: Learn debugging techniques in [Debugging Guide](debugging.md)
+- **Runbook**: Step-by-step operational guide in [Runbook](runbook.md)
