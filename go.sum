@@ -89,10 +89,8 @@ github.com/onsi/ginkgo/v2 v2.27.2 h1:LzwLj0b89qtIy6SSASkzlNvX6WktqurSHwkk2ipF/Ns
 github.com/onsi/ginkgo/v2 v2.27.2/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
 github.com/onsi/gomega v1.38.2 h1:eZCjf2xjZAqe+LeWvKb5weQ+NcPwX84kqJ0cZNxok2A=
 github.com/onsi/gomega v1.38.2/go.mod h1:W2MJcYxRGV63b418Ai34Ud0hEdTVXq9NW9+Sx6uXf3k=
-github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.12 h1:Eo0LvsU2lz2fJiy9LNiGSIqiOhHMTINK7P70VR+hkMA=
-github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.12/go.mod h1:KITzIAd8HcMpH5lXdHFjgk45dvL6XLpP3wwz8iK+KCI=
-github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.15 h1:hvMiu1kkBEJE4eumMKGfv6Gzl3sTlX5yCW6cEGe8ToM=
-github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.15/go.mod h1:KITzIAd8HcMpH5lXdHFjgk45dvL6XLpP3wwz8iK+KCI=
+github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.21 h1:+Vlr1GOldX+pWJdVVlHxiCuVRQjTlr1Q3ez+ON+To/Q=
+github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.21/go.mod h1:KITzIAd8HcMpH5lXdHFjgk45dvL6XLpP3wwz8iK+KCI=
 github.com/pelletier/go-toml/v2 v2.1.0 h1:FnwAJ4oYMvbT/34k9zzHuZNrhlz48GB3/s6at6/MHO4=
 github.com/pelletier/go-toml/v2 v2.1.0/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

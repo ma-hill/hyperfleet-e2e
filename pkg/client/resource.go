@@ -34,7 +34,6 @@ type Resource struct {
 
 type ResourceList struct {
 	Items []Resource `json:"items"`
-	Kind  string     `json:"kind"`
 	Total int32      `json:"total"`
 	Size  int32      `json:"size"`
 	Page  int32      `json:"page"`

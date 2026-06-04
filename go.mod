@@ -7,7 +7,8 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.15
+	github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.21
+	github.com/samber/lo v1.53.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.0
 	k8s.io/api v0.35.1
@@ -43,7 +44,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/samber/lo v1.53.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect

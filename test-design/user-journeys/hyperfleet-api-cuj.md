@@ -275,7 +275,7 @@ GET /api/hyperfleet/v1/clusters?status.conditions.Reconciled='True'&provider=gcp
 - **Combine Multiple Filters**: Mix conditions, labels, provider, region, and name
 
 **System Response / User Sees:**
-- List response includes pagination fields: kind, page, size, total, items
+- List response includes pagination fields: page, size, total, items
 - Each cluster shows id, name, spec (provider, region), status (conditions), labels, timestamps
 - Flexible filtering enables quick cluster location
 - Supports complex operational queries (e.g., "all production GCP clusters in us-east1 that are Reconciled")
@@ -319,7 +319,6 @@ GET /api/hyperfleet/v1/clusters?status.conditions.Reconciled='True'
 - Empty results list:
 ```json
 {
-  "kind": "ClusterList",
   "page": 1,
   "size": 0,
   "total": 0,
@@ -460,7 +459,7 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?labels=workload:gpu&statu
 - **Combine Multiple Filters**: Mix conditions and labels
 
 **System Response / User Sees:**
-- List response includes pagination fields: kind, page, size, total, items
+- List response includes pagination fields: page, size, total, items
 - Each nodepool shows id, cluster_id, spec (nodeCount, machineType), status (conditions), labels, timestamps
 - Flexible filtering enables quick nodepool location
 - Support for workload-specific queries (e.g., "all GPU nodepools that are Reconciled")
@@ -515,7 +514,6 @@ GET /api/hyperfleet/v1/clusters/{cluster_id}/nodepools?labels=workload:nonexiste
 - Empty results list:
 ```json
 {
-  "kind": "NodePoolList",
   "page": 1,
   "size": 0,
   "total": 0,
