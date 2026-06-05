@@ -28,6 +28,7 @@ var args struct {
 	focusTests  string
 	skipTests   string
 	junitReport string
+	dryRun      bool
 }
 
 func init() {
@@ -42,6 +43,8 @@ func init() {
 		"Skip tests matching this regex")
 	pfs.StringVar(&args.junitReport, "junit-report", "",
 		"Path to write JUnit XML report")
+	pfs.BoolVar(&args.dryRun, "dry-run", false,
+		"List matching specs without executing them")
 }
 
 func run(cmd *cobra.Command, argv []string) {
@@ -56,6 +59,7 @@ func run(cmd *cobra.Command, argv []string) {
 	_ = viper.BindPFlag(config.Tests.GinkgoFocus, pfs.Lookup("focus"))
 	_ = viper.BindPFlag(config.Tests.GinkgoSkip, pfs.Lookup("skip"))
 	_ = viper.BindPFlag(config.Tests.JUnitReportPath, pfs.Lookup("junit-report"))
+	_ = viper.BindPFlag(config.Tests.GinkgoDryRun, pfs.Lookup("dry-run"))
 
 	// Bind parent command flags (api-url, logging flags)
 	parentFlags := cmd.Parent().PersistentFlags()
@@ -70,6 +74,7 @@ func run(cmd *cobra.Command, argv []string) {
 	_ = viper.BindEnv(config.Tests.GinkgoSkip, "GINKGO_SKIP")
 	_ = viper.BindEnv(config.Tests.JUnitReportPath, "JUNIT_REPORT_PATH")
 	_ = viper.BindEnv(config.Tests.SuiteTimeout, "SUITE_TIMEOUT")
+	_ = viper.BindEnv(config.Tests.GinkgoDryRun, "GINKGO_DRY_RUN")
 
 	// Load and validate config (fast failure before entering Ginkgo)
 	cfg, err := config.Load()
