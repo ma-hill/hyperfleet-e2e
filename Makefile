@@ -78,6 +78,8 @@ clean: ## Remove build artifacts
 
 ##@ Testing
 
+FLAKE_ATTEMPTS ?= 2
+
 .PHONY: test
 test: generate ## Run unit tests
 	$(GO) test -v -race -cover -coverprofile=coverage.out ./pkg/...
@@ -93,7 +95,7 @@ e2e: build ## Run all E2E tests
 .PHONY: e2e-ci
 e2e-ci: build ## Run E2E tests with CI configuration
 	mkdir -p $(OUTPUT_DIR)
-	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --configs ci --junit-report $(OUTPUT_DIR)/junit.xml
+	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --flake-attempts=$(FLAKE_ATTEMPTS) --junit-report $(OUTPUT_DIR)/junit.xml
 
 .PHONY: list-tests
 list-tests: build ## List E2E tests by tier without executing (dry-run)

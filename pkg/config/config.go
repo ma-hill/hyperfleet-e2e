@@ -67,6 +67,10 @@ var Tests = struct {
 	// GinkgoDryRun lists matching specs without executing them
 	// Env: GINKGO_DRY_RUN
 	GinkgoDryRun string
+	// FlakeAttempts is the number of attempts for a failed test (includes initial attempt)
+	// FlakeAttempts=1 means no retries, FlakeAttempts=3 means up to 2 retries
+	// Env: FLAKE_ATTEMPTS
+	FlakeAttempts string
 }{
 	GinkgoLabelFilter: "tests.ginkgoLabelFilter",
 	GinkgoFocus:       "tests.focus",
@@ -74,6 +78,7 @@ var Tests = struct {
 	SuiteTimeout:      "tests.suiteTimeout",
 	JUnitReportPath:   "tests.junitReportPath",
 	GinkgoDryRun:      "tests.dryRun",
+	FlakeAttempts:     "tests.flakeAttempts",
 }
 
 // Log config keys

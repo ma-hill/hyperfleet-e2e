@@ -58,6 +58,10 @@ func configureGinkgoFromViper(suiteConfig *types.SuiteConfig, reporterConfig *ty
 		suiteConfig.Timeout = timeout
 	}
 
+	if flakeAttempts := viper.GetInt(config.Tests.FlakeAttempts); flakeAttempts > 0 {
+		suiteConfig.FlakeAttempts = flakeAttempts
+	}
+
 	if labelFilter := viper.GetString(config.Tests.GinkgoLabelFilter); labelFilter != "" {
 		suiteConfig.LabelFilter = labelFilter
 	}

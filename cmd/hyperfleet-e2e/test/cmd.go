@@ -24,11 +24,12 @@ var Cmd = &cobra.Command{
 }
 
 var args struct {
-	labelFilter string
-	focusTests  string
-	skipTests   string
-	junitReport string
-	dryRun      bool
+	labelFilter   string
+	focusTests    string
+	skipTests     string
+	junitReport   string
+	dryRun        bool
+	flakeAttempts int
 }
 
 func init() {
@@ -45,6 +46,8 @@ func init() {
 		"Path to write JUnit XML report")
 	pfs.BoolVar(&args.dryRun, "dry-run", false,
 		"List matching specs without executing them")
+	pfs.IntVar(&args.flakeAttempts, "flake-attempts", 1,
+		"Number of attempts for flaky tests (1 = no retries, 3 = up to 2 retries)")
 }
 
 func run(cmd *cobra.Command, argv []string) {
@@ -60,6 +63,7 @@ func run(cmd *cobra.Command, argv []string) {
 	_ = viper.BindPFlag(config.Tests.GinkgoSkip, pfs.Lookup("skip"))
 	_ = viper.BindPFlag(config.Tests.JUnitReportPath, pfs.Lookup("junit-report"))
 	_ = viper.BindPFlag(config.Tests.GinkgoDryRun, pfs.Lookup("dry-run"))
+	_ = viper.BindPFlag(config.Tests.FlakeAttempts, pfs.Lookup("flake-attempts"))
 
 	// Bind parent command flags (api-url, logging flags)
 	parentFlags := cmd.Parent().PersistentFlags()
@@ -75,6 +79,7 @@ func run(cmd *cobra.Command, argv []string) {
 	_ = viper.BindEnv(config.Tests.JUnitReportPath, "JUNIT_REPORT_PATH")
 	_ = viper.BindEnv(config.Tests.SuiteTimeout, "SUITE_TIMEOUT")
 	_ = viper.BindEnv(config.Tests.GinkgoDryRun, "GINKGO_DRY_RUN")
+	_ = viper.BindEnv(config.Tests.FlakeAttempts, "FLAKE_ATTEMPTS")
 
 	// Load and validate config (fast failure before entering Ginkgo)
 	cfg, err := config.Load()
