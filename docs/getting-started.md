@@ -67,9 +67,23 @@ The framework:
 # Run cluster tier0 tests only
 ./bin/hyperfleet-e2e test --label-filter="tier0" --focus "\[Suite: cluster\]"
 
-
 # Deep debug mode (add API calls and framework internals)
 ./bin/hyperfleet-e2e test --log-level=debug
+```
+
+## Listing Tests Without Execution
+
+Use `--dry-run` to discover which specs match your filters without connecting to the API or creating resources. No `--api-url` is required in dry-run mode.
+
+```bash
+# List all tier0 tests
+./bin/hyperfleet-e2e test --dry-run --label-filter=tier0
+
+# List tier1 cluster tests
+./bin/hyperfleet-e2e test --dry-run --label-filter=tier1 --focus "\[Suite: cluster\]"
+
+# List tests for each tier via Makefile
+make list-tests
 ```
 
 **Note**: The default output already shows detailed test execution steps. If a test fails, you can usually diagnose the issue from the logs without re-running in debug mode. Use `--log-level=debug` when you need to see API calls and framework internals. See [Debugging Guide](debugging.md) for more debugging techniques.
@@ -77,11 +91,12 @@ The framework:
 ## Common Commands
 
 ```bash
-make build      # Build binary
-make test       # Run unit tests
-make e2e        # Run E2E tests
-make lint       # Run linter
-make generate   # Regenerate OpenAPI client
+make build       # Build binary
+make test        # Run unit tests
+make e2e         # Run E2E tests
+make list-tests  # List tests by tier (dry-run, no API required)
+make lint        # Run linter
+make generate    # Regenerate OpenAPI client
 ```
 
 ## Troubleshooting

@@ -63,12 +63,17 @@ var Tests = struct {
 	// JUnitReportPath is the path to write JUnit XML report
 	// Env: JUNIT_REPORT_PATH
 	JUnitReportPath string
+
+	// GinkgoDryRun lists matching specs without executing them
+	// Env: GINKGO_DRY_RUN
+	GinkgoDryRun string
 }{
 	GinkgoLabelFilter: "tests.ginkgoLabelFilter",
 	GinkgoFocus:       "tests.focus",
 	GinkgoSkip:        "tests.ginkgoSkip",
 	SuiteTimeout:      "tests.suiteTimeout",
 	JUnitReportPath:   "tests.junitReportPath",
+	GinkgoDryRun:      "tests.dryRun",
 }
 
 // Log config keys
@@ -404,8 +409,10 @@ func (c *Config) applyDefaults() {
 
 // Validate validates configuration with detailed error messages
 func (c *Config) Validate() error {
-	// Validate API URL requirement
-	if c.API.URL == "" {
+	dryRun := viper.GetBool(Tests.GinkgoDryRun)
+
+	// Validate API URL requirement (not needed for dry-run listing)
+	if !dryRun && c.API.URL == "" {
 		return fmt.Errorf(`configuration validation failed:
   - Field 'Config.API.URL' is required
     Please provide API URL (in order of priority):

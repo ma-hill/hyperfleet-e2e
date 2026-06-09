@@ -74,6 +74,10 @@ func configureGinkgoFromViper(suiteConfig *types.SuiteConfig, reporterConfig *ty
 		reporterConfig.JUnitReport = junitReport
 	}
 
+	if viper.GetBool(config.Tests.GinkgoDryRun) {
+		suiteConfig.DryRun = true
+	}
+
 	reporterConfig.NoColor = true
 	// Enable verbose test output for info and debug levels
 	logLevel := viper.GetString(config.Log.Level)

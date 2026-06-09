@@ -95,6 +95,17 @@ e2e-ci: build ## Run E2E tests with CI configuration
 	mkdir -p $(OUTPUT_DIR)
 	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --configs ci --junit-report $(OUTPUT_DIR)/junit.xml
 
+.PHONY: list-tests
+list-tests: build ## List E2E tests by tier without executing (dry-run)
+	@echo "=== tier0 ==="
+	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --dry-run --label-filter=tier0
+	@echo ""
+	@echo "=== tier1 ==="
+	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --dry-run --label-filter=tier1
+	@echo ""
+	@echo "=== tier2 ==="
+	TESTDATA_DIR=$(PWD)/testdata ./$(BINARY_NAME) test --dry-run --label-filter=tier2
+
 ##@ Code Quality
 
 .PHONY: fmt
