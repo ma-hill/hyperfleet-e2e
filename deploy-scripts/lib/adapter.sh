@@ -107,19 +107,8 @@ install_adapter_instance() {
   log_info "Resource type: ${resource_type}"
   log_info "Adapter name: ${adapter_name}"
 
-  # Construct deterministic release name (matches API/Sentinel pattern)
-  # Kubernetes resource names have a 63-character limit
-  # Reserve ~15 characters for Helm's deployment/pod suffixes
-  local max_release_name_length=48
-  local release_name="adapter-${resource_type}-${adapter_name}"
-
-  if [[ ${#release_name} -gt ${max_release_name_length} ]]; then
-    local release_hash
-    release_hash=$(printf '%s' "${release_name}" | sha256sum | cut -c1-8)
-    local max_base_length=$((max_release_name_length - ${#release_hash} - 1))
-    release_name="${release_name:0:${max_base_length}}-${release_hash}"
-    log_warning "Release name truncated to ${max_release_name_length} chars to stay within Kubernetes limits"
-  fi
+  # Temporary workaround for installation - HYPERFLEET-1097
+  local release_name="${adapter_name}"
 
   log_info "Release name: ${release_name} (length: ${#release_name})"
 

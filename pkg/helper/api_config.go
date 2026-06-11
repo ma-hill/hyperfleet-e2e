@@ -23,7 +23,7 @@ func (h *Helper) UpgradeAPIRequiredAdapters(ctx context.Context, apiChartPath, n
 	cmdCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(cmdCtx, "helm", "upgrade", "api", apiChartPath, // #nosec G204 -- args from trusted test config
+	cmd := exec.CommandContext(cmdCtx, "helm", "upgrade", "hyperfleet-api", apiChartPath, // #nosec G204 -- args from trusted test config
 		"--namespace", namespace,
 		"--reuse-values",
 		"--wait",
@@ -83,7 +83,7 @@ func (h *Helper) RestoreAPIRequiredAdaptersWithRetry(ctx context.Context, apiCha
 		"max_retries", maxRetries,
 		"error", lastErr,
 		"manual_fix", fmt.Sprintf(
-			"helm upgrade api %s -n %s --reuse-values --set config.adapters.required.cluster={%s}",
+			"helm upgrade hyperfleet-api %s -n %s --reuse-values --set config.adapters.required.cluster={%s}",
 			apiChartPath, namespace, adapterList))
 
 	return fmt.Errorf("failed to restore API config after %d retries: %w", maxRetries, lastErr)

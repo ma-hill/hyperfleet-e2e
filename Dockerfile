@@ -30,7 +30,7 @@ FROM ${BASE_IMAGE}
 
 # Install runtime dependencies and tools
 USER root
-RUN dnf -y install --allowerasing jq gettext curl && dnf clean all
+RUN dnf -y install --allowerasing jq gettext curl git && dnf clean all
 
 # Install kubectl (latest stable)
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
@@ -38,6 +38,18 @@ RUN curl -fsSL "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release
 
 # Install Helm
 RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Install Helm plugins - helm-git and helm-diff
+ARG HELM_GIT_VERSION=v1.5.2
+ARG HELM_DIFF_VERSION=3.15.7
+RUN helm plugin install https://github.com/aslafy-z/helm-git --version ${HELM_GIT_VERSION} && \
+    helm plugin install https://github.com/databus23/helm-diff --version ${HELM_DIFF_VERSION}
+
+ARG HELMFILE_VERSION=1.5.2
+# Install helmfile
+RUN curl -fsSL "https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz" | \
+    tar -xz -C /usr/local/bin helmfile && \
+    chmod +x /usr/local/bin/helmfile
 
 WORKDIR /e2e
 
@@ -52,6 +64,13 @@ COPY --from=builder /build/testdata /e2e/testdata
 
 # Copy deploy scripts
 COPY --from=builder /build/deploy-scripts /e2e/deploy-scripts
+
+# Copy env files
+COPY --from=builder /build/env /e2e/env
+
+# Copy cleanup scripts
+COPY --from=builder /build/scripts /e2e/scripts
+
 
 # Copy default config (fallback if ConfigMap is not mounted)
 COPY --from=builder /build/configs /e2e/configs

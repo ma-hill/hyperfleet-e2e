@@ -51,7 +51,8 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Force-Delete Cluster Stuck in 
 
 				Expect(h.Cfg.Adapters.Cluster).NotTo(BeEmpty(), "cluster adapter config is required for this test")
 				clAdapterName := h.Cfg.Adapters.Cluster[0]
-				clReleaseName := helper.GenerateAdapterReleaseName(helper.ResourceTypeClusters, clAdapterName)
+				// Standard adapters are deployed with release name = adapter name (e.g., "cl-namespace", not "adapter-clusters-cl-namespace")
+				clReleaseName := clAdapterName
 
 				deploymentName, err := h.GetDeploymentName(ctx, h.Cfg.Namespace, clReleaseName)
 				Expect(err).NotTo(HaveOccurred(), "failed to find cluster adapter deployment")

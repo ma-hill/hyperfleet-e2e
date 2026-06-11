@@ -11,7 +11,7 @@
 install_api() {
     log_section "Installing API"
 
-    local release_name="api"
+    local release_name="hyperfleet-api"
     local full_chart_path="${WORK_DIR}/api/${API_CHART_PATH}"
 
     # Use API_ADAPTERS_* environment variables for API configuration
@@ -121,7 +121,7 @@ install_api() {
 uninstall_api() {
     log_section "Uninstalling API"
 
-    local release_name="api"
+    local release_name="hyperfleet-api"
 
     # Check if release exists
     if [[ -z "$(helm list -n "${NAMESPACE}" -q -f "^${release_name}$")" ]]; then
