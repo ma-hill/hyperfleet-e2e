@@ -164,6 +164,24 @@ func (h *Helper) CleanupTestChannel(ctx context.Context, channelID string) error
 	return deleteErr
 }
 
+// CleanupTestWifConfig deletes a WIF config resource.
+// WIF configs are non-reconcilable resources with no hard-delete — cleanup is just soft-delete, no 404 polling.
+func (h *Helper) CleanupTestWifConfig(ctx context.Context, wifConfigID string) error {
+	logger.Info("cleaning up wifconfig", "wifconfig_id", wifConfigID)
+
+	if _, err := h.Client.DeleteWifConfig(ctx, wifConfigID); err != nil {
+		var httpErr *client.HTTPError
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+			logger.Info("wifconfig already deleted", "wifconfig_id", wifConfigID)
+			return nil
+		}
+		return fmt.Errorf("delete wifconfig %s: %w", wifConfigID, err)
+	}
+
+	logger.Info("wifconfig cleaned up", "wifconfig_id", wifConfigID)
+	return nil
+}
+
 // GetMaestroClient returns the Maestro client, initializing it lazily on first access
 // This avoids the overhead of K8s service discovery for test suites that don't use Maestro
 func (h *Helper) GetMaestroClient() *maestro.Client {

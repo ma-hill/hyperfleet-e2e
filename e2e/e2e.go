@@ -7,4 +7,5 @@ import (
 	_ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/cluster"
 	_ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/nodepool"
 	_ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/version"
+	_ "github.com/openshift-hyperfleet/hyperfleet-e2e/e2e/wifconfig"
 )
