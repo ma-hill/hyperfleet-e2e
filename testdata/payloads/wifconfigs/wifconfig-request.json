@@ -1,0 +1,11 @@
+{
+  "kind": "WifConfig",
+  "name": "wif-{{.Random}}",
+  "spec": {
+    "projectId": "test-project-{{.Random}}",
+    "version": "4.17"
+  },
+  "labels": {
+    "environment": "test"
+  }
+}
