@@ -425,15 +425,7 @@ The setup step deploys the HyperFleet platform to the shared GKE cluster, stores
 
 **From the Prow dashboard:** Click the **Rerun** button on the job page. Don't click it repeatedly — it takes a few seconds to register.
 
-**From the command line (gangway API):**
-
-```bash
-# Trigger tier0 nightly (replace with tier1 or tier2 as needed)
-curl -v -X POST \
-  -H "Authorization: Bearer $(oc whoami -t)" \
-  -d '{"job_name": "periodic-ci-openshift-hyperfleet-hyperfleet-e2e-main-e2e-tier0-nightly", "job_execution_type": "1"}' \
-  https://gangway-ci.apps.ci.l2s4.p1.openshiftapps.com/v1/executions
-```
+**From the command line (Gangway API):** See [Trigger HyperFleet E2E Jobs via Gangway API](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/docs/release/test-release/trigger-e2e-jobs-via-gangway.md) for triggering the nightly and RC jobs on demand, including image-tag overrides.
 
 ### Debugging in the Prow Environment
 

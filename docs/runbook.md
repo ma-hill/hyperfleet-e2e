@@ -345,8 +345,9 @@ For comprehensive information about CI jobs, see the [Add HyperFleet E2E CI Job 
 
 - How CI jobs are configured in Prow
 - Viewing job results
-- Triggering jobs manually
 - Debugging job failures
+
+To trigger the nightly or RC E2E jobs on demand via the Gangway API (including image-tag overrides), see [Trigger HyperFleet E2E Jobs via Gangway API](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/docs/release/test-release/trigger-e2e-jobs-via-gangway.md).
 
 ## Changelog
 
