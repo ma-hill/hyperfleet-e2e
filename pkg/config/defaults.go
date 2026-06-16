@@ -40,6 +40,9 @@ const (
 	// DefaultNodePoolReconciledTimeout is the default timeout for waiting for a nodepool to become reconciled
 	DefaultNodePoolReconciledTimeout = 5 * time.Minute
 
+	// DefaultNodePoolDeletedTimeout is the default timeout for waiting for a nodepool to be hard-deleted (404)
+	DefaultNodePoolDeletedTimeout = 2 * time.Minute
+
 	// DefaultAdapterProcessingTimeout is the default timeout for waiting for adapter conditions
 	DefaultAdapterProcessingTimeout = 5 * time.Minute
 

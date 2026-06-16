@@ -47,6 +47,10 @@ timeouts:
     # Can be overridden by: HYPERFLEET_TIMEOUTS_NODEPOOL_RECONCILED
     reconciled: 2m
 
+    # Maximum time to wait for nodepool hard-delete (404 response)
+    # Can be overridden by: HYPERFLEET_TIMEOUTS_NODEPOOL_DELETED
+    deleted: 2m
+
   adapter:
     # Maximum time to wait for adapter processing
     #

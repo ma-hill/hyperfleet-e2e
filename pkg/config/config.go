@@ -160,6 +160,7 @@ type ClusterTimeouts struct {
 // NodePoolTimeouts contains nodepool-related timeouts
 type NodePoolTimeouts struct {
 	Reconciled time.Duration `yaml:"reconciled" mapstructure:"reconciled"`
+	Deleted    time.Duration `yaml:"deleted" mapstructure:"deleted"`
 }
 
 // AdapterTimeouts contains adapter-related timeouts
@@ -302,6 +303,9 @@ func (c *Config) applyDefaults() {
 	if c.Timeouts.NodePool.Reconciled == 0 {
 		c.Timeouts.NodePool.Reconciled = DefaultNodePoolReconciledTimeout
 	}
+	if c.Timeouts.NodePool.Deleted == 0 {
+		c.Timeouts.NodePool.Deleted = DefaultNodePoolDeletedTimeout
+	}
 	if c.Timeouts.Adapter.Processing == 0 {
 		c.Timeouts.Adapter.Processing = DefaultAdapterProcessingTimeout
 	}
@@ -436,6 +440,9 @@ func (c *Config) Validate() error {
 	if c.Timeouts.NodePool.Reconciled <= 0 {
 		return fmt.Errorf("configuration validation failed: timeouts.nodepool.reconciled must be a positive duration, got %v", c.Timeouts.NodePool.Reconciled)
 	}
+	if c.Timeouts.NodePool.Deleted <= 0 {
+		return fmt.Errorf("configuration validation failed: timeouts.nodepool.deleted must be a positive duration, got %v", c.Timeouts.NodePool.Deleted)
+	}
 	if c.Timeouts.Adapter.Processing <= 0 {
 		return fmt.Errorf("configuration validation failed: timeouts.adapter.processing must be a positive duration, got %v", c.Timeouts.Adapter.Processing)
 	}
@@ -457,6 +464,7 @@ func (c *Config) Display() {
 		"timeout_cluster_reconciled", c.Timeouts.Cluster.Reconciled,
 		"timeout_cluster_deleted", c.Timeouts.Cluster.Deleted,
 		"timeout_nodepool_reconciled", c.Timeouts.NodePool.Reconciled,
+		"timeout_nodepool_deleted", c.Timeouts.NodePool.Deleted,
 		"timeout_adapter_processing", c.Timeouts.Adapter.Processing,
 		"polling_interval", c.Polling.Interval,
 		"log_level", c.Log.Level,

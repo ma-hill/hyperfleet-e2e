@@ -12,9 +12,14 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 RESULTS_DIR="$REPO_DIR/perf/results"
 
-if [[ -n "${1:-}" && -f "$1" ]]; then
-  INPUT="$1"
-  SOURCE="$1"
+if [[ -n "${1:-}" ]]; then
+  if [[ -f "$1" ]]; then
+    INPUT="$1"
+    SOURCE="$1"
+  else
+    echo "ERROR: Input file not found: $1"
+    exit 1
+  fi
 else
   INPUT=$(ls -t "$RESULTS_DIR"/perf-baseline-*.txt 2>/dev/null | grep -v "\-report\.txt$" | head -1 || true)
   if [[ -z "$INPUT" || ! -f "$INPUT" ]]; then

@@ -40,9 +40,11 @@ fi
 
 echo "=== Building and pushing image ==="
 cd "$REPO_DIR"
-make image-dev
-DEV_TAG="dev-$(git rev-parse --short HEAD)"
-IMAGE="quay.io/$QUAY_USER/hyperfleet-e2e:$DEV_TAG"
+IMAGE=$(make image-dev 2>&1 | tee /dev/stderr | grep "Dev image pushed:" | awk '{print $NF}')
+if [[ -z "$IMAGE" ]]; then
+  echo "ERROR: Failed to extract image reference from make image-dev output"
+  exit 1
+fi
 echo "Image: $IMAGE"
 echo ""
 

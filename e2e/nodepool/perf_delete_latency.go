@@ -56,7 +56,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][perf] Delete-to-hard-delete latency",
 			_, err := h.Client.DeleteNodePool(ctx, clusterID, nodepoolID)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(h.PollNodePoolHTTPStatus(ctx, clusterID, nodepoolID), h.Cfg.Timeouts.Adapter.Processing, h.Cfg.Polling.Interval).
+			Eventually(h.PollNodePoolHTTPStatus(ctx, clusterID, nodepoolID), h.Cfg.Timeouts.NodePool.Deleted, h.Cfg.Polling.Interval).
 				Should(Equal(http.StatusNotFound))
 
 			elapsed := time.Since(start)

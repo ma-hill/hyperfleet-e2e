@@ -72,8 +72,13 @@ delete_in_batches() {
     while IFS= read -r id; do
       [[ -z "$id" ]] && continue
       [[ "$id" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
-      curl -s -o /dev/null $CURL_OPTS -X DELETE "$API_BASE/clusters/$id" --http1.1
-      deleted=$((deleted + 1))
+      local http_code
+      http_code=$(curl -s -o /dev/null -w '%{http_code}' $CURL_OPTS -X DELETE "$API_BASE/clusters/$id" --http1.1)
+      if [[ "$http_code" =~ ^2 ]]; then
+        deleted=$((deleted + 1))
+      else
+        echo "  WARN: DELETE $id returned HTTP $http_code"
+      fi
       if (( deleted % 50 == 0 )); then
         echo "  Deleted $deleted"
       fi
