@@ -33,7 +33,7 @@ Reconciliation tests require adapters to be connected to the correct Pub/Sub top
 Confirm the adapters are subscribed to the correct topic (not `placeholder`):
 
 ```bash
-kubectl exec -n hyperfleet deploy/adapter1-hyperfleet-adapter -- env | grep BROKER_TOPIC
+kubectl exec -n hyperfleet deploy/adapter1-hyperfleet-adapter -- env | grep HYPERFLEET_BROKER_TOPIC
 ```
 
 Confirm Sentinel is publishing events:

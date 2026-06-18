@@ -7,6 +7,8 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck // dot import for test readability
 
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -32,6 +34,10 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API read latency",
 		})
 
 		ginkgo.It("should read a cluster within acceptable latency", func(ctx context.Context) {
+			ginkgo.By("waiting for cluster to reach Reconciled before read")
+			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
+				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
+
 			ginkgo.By("measuring GET /clusters/{id} response time")
 			start := time.Now()
 			_, err := h.Client.GetCluster(ctx, clusterID)
