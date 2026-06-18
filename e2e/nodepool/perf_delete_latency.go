@@ -36,6 +36,7 @@ var _ = ginkgo.Describe("[Suite: nodepool][perf] Delete-to-hard-delete latency",
 
 			nodepool, err := h.Client.CreateNodePoolFromPayload(ctx, clusterID, h.TestDataPath("payloads/nodepools/nodepool-request.json"))
 			Expect(err).NotTo(HaveOccurred())
+			Expect(nodepool.Id).NotTo(BeNil(), "nodepool ID should be set")
 			nodepoolID = *nodepool.Id
 
 			ginkgo.DeferCleanup(func(ctx context.Context) {

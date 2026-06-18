@@ -100,7 +100,7 @@ func (h *Helper) CleanupTestNodePool(ctx context.Context, clusterID, nodepoolID 
 	}
 
 	pollFn := h.PollNodePoolHTTPStatus(ctx, clusterID, nodepoolID)
-	deadline := time.Now().Add(h.Cfg.Timeouts.NodePool.Reconciled)
+	deadline := time.Now().Add(h.Cfg.Timeouts.NodePool.Deleted)
 	for time.Now().Before(deadline) {
 		status, err := pollFn()
 		if err != nil {
@@ -116,7 +116,7 @@ func (h *Helper) CleanupTestNodePool(ctx context.Context, clusterID, nodepoolID 
 		time.Sleep(h.Cfg.Polling.Interval)
 	}
 
-	return fmt.Errorf("nodepool %s not hard-deleted within %s", nodepoolID, h.Cfg.Timeouts.NodePool.Reconciled)
+	return fmt.Errorf("nodepool %s not hard-deleted within %s", nodepoolID, h.Cfg.Timeouts.NodePool.Deleted)
 }
 
 // CleanupTestChannel deletes all versions under a channel, then deletes the channel.

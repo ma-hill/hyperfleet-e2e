@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -36,6 +37,7 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API read latency by entity size"
 				ginkgo.By("creating a " + size.name + " cluster")
 				cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath(size.payload))
 				Expect(err).NotTo(HaveOccurred())
+				Expect(cluster.Id).NotTo(BeNil(), "cluster ID should be set")
 				clusterID := *cluster.Id
 
 				ginkgo.DeferCleanup(func(ctx context.Context) {
@@ -48,12 +50,22 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API read latency by entity size"
 				Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
 					Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
 
-				ginkgo.By("measuring GET /clusters/{id} response time for " + size.name + " entity")
-				start := time.Now()
+				ginkgo.By("warming up with untimed read")
 				_, err = h.Client.GetCluster(ctx, clusterID)
 				Expect(err).NotTo(HaveOccurred())
-				elapsed := time.Since(start)
-				ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters/%s (%s entity) latency: %v\n", clusterID, size.name, elapsed)
+
+				ginkgo.By("measuring GET /clusters/{id} response time for " + size.name + " entity")
+				const samples = 5
+				durations := make([]time.Duration, samples)
+				for i := range samples {
+					start := time.Now()
+					_, err = h.Client.GetCluster(ctx, clusterID)
+					Expect(err).NotTo(HaveOccurred())
+					durations[i] = time.Since(start)
+				}
+				slices.Sort(durations)
+				median := durations[samples/2]
+				ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters/%s (%s entity) latency: %v (median of %d samples)\n", clusterID, size.name, median, samples)
 			})
 		}
 	},

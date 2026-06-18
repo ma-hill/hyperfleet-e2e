@@ -25,6 +25,7 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Delete-to-hard-delete latency",
 
 			cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 			Expect(err).NotTo(HaveOccurred())
+			Expect(cluster.Id).NotTo(BeNil(), "cluster ID should be set")
 			clusterID = *cluster.Id
 
 			ginkgo.DeferCleanup(func(ctx context.Context) {

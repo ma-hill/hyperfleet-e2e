@@ -26,6 +26,7 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Cascade delete-to-hard-delete la
 
 			cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 			Expect(err).NotTo(HaveOccurred())
+			Expect(cluster.Id).NotTo(BeNil(), "cluster ID should be set")
 			clusterID = *cluster.Id
 
 			ginkgo.DeferCleanup(func(ctx context.Context) {
@@ -41,6 +42,7 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Cascade delete-to-hard-delete la
 			ginkgo.By("creating a nodepool on the cluster")
 			nodepool, err := h.Client.CreateNodePoolFromPayload(ctx, clusterID, h.TestDataPath("payloads/nodepools/nodepool-request.json"))
 			Expect(err).NotTo(HaveOccurred())
+			Expect(nodepool.Id).NotTo(BeNil(), "nodepool ID should be set")
 			nodepoolID = *nodepool.Id
 
 			ginkgo.DeferCleanup(func(ctx context.Context) {

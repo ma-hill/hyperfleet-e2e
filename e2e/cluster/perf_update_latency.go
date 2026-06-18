@@ -24,6 +24,7 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Update-to-re-reconciled latency"
 
 			cluster, err := h.Client.CreateClusterFromPayload(ctx, h.TestDataPath("payloads/clusters/cluster-request.json"))
 			Expect(err).NotTo(HaveOccurred())
+			Expect(cluster.Id).NotTo(BeNil(), "cluster ID should be set")
 			clusterID = *cluster.Id
 
 			ginkgo.DeferCleanup(func(ctx context.Context) {
@@ -41,14 +42,18 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Update-to-re-reconciled latency"
 			ginkgo.By("patching cluster and timing until re-reconciled")
 			start := time.Now()
 
-			_, err := h.Client.PatchClusterFromPayload(ctx, clusterID, h.TestDataPath("payloads/clusters/cluster-patch.json"))
+			patchedCluster, err := h.Client.PatchClusterFromPayload(ctx, clusterID, h.TestDataPath("payloads/clusters/cluster-patch.json"))
 			Expect(err).NotTo(HaveOccurred())
+			expectedGen := patchedCluster.Generation
 
-			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
-				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusFalse))
-
-			Eventually(h.PollCluster(ctx, clusterID), h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).
-				Should(helper.HaveResourceCondition(client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue))
+			Eventually(func(g Gomega) {
+				cluster, err := h.Client.GetCluster(ctx, clusterID)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(cluster.Generation).To(BeNumerically(">=", expectedGen))
+				g.Expect(h.HasResourceCondition(cluster.Status.Conditions,
+					client.ConditionTypeReconciled, openapi.ResourceConditionStatusTrue)).
+					To(BeTrue(), "expected Reconciled=True at generation %d", expectedGen)
+			}, h.Cfg.Timeouts.Cluster.Reconciled, h.Cfg.Polling.Interval).Should(Succeed())
 
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] Cluster update-to-re-reconciled latency: %v\n", elapsed)

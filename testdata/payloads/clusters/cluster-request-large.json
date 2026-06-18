@@ -11,7 +11,47 @@
     "owner": "team-infra",
     "compliance": "soc2",
     "datacenter": "dc-west-01",
-    "managed-by": "hyperfleet"
+    "managed-by": "hyperfleet",
+    "billing-code": "proj-12345",
+    "support-tier": "premium",
+    "backup-policy": "daily",
+    "maintenance-window": "sun-02-06",
+    "security-zone": "restricted",
+    "network-tier": "premium",
+    "monitoring-profile": "full",
+    "alert-channel": "pagerduty-infra",
+    "on-call-team": "sre-west",
+    "provisioner": "hyperfleet-v2",
+    "cluster-class": "high-availability",
+    "upgrade-policy": "canary",
+    "feature-gate-01": "enabled",
+    "feature-gate-02": "enabled",
+    "feature-gate-03": "disabled",
+    "feature-gate-04": "enabled",
+    "feature-gate-05": "disabled",
+    "audit-group": "compliance-team",
+    "data-classification": "internal",
+    "disaster-recovery": "active-passive",
+    "capacity-pool": "pool-west-large",
+    "tenant-id": "tenant-acme-corp",
+    "project-phase": "ga",
+    "sla-target": "99.95",
+    "dns-zone": "west.internal.example.com",
+    "certificate-authority": "internal-ca-v3",
+    "log-retention": "90d",
+    "metrics-retention": "30d",
+    "image-registry": "registry.internal.example.com",
+    "proxy-config": "egress-west-01",
+    "gpu-enabled": "false",
+    "fips-mode": "enabled",
+    "node-count-target": "50",
+    "max-pods-per-node": "250",
+    "cluster-autoscaler": "enabled",
+    "vertical-pod-autoscaler": "enabled",
+    "pod-security-standard": "restricted",
+    "network-policy-engine": "calico",
+    "service-mesh": "istio-1.20",
+    "ingress-controller": "nginx-2.0"
   },
   "spec": {
     "platform": {
@@ -23,31 +63,105 @@
         "network": "default",
         "subnet": "default-subnet",
         "subnets": [
-          { "id": "subnet-cp-01", "name": "control-plane", "cidr": "10.0.1.0/24", "role": "control-plane" },
-          { "id": "subnet-wk-01", "name": "worker-nodes-a", "cidr": "10.0.2.0/24", "role": "worker" },
-          { "id": "subnet-wk-02", "name": "worker-nodes-b", "cidr": "10.0.3.0/24", "role": "worker" },
-          { "id": "subnet-wk-03", "name": "worker-nodes-c", "cidr": "10.0.4.0/24", "role": "worker" },
-          { "id": "subnet-svc-01", "name": "service-mesh", "cidr": "10.0.5.0/24", "role": "service" },
-          { "id": "subnet-svc-02", "name": "service-ingress", "cidr": "10.0.6.0/24", "role": "service" },
-          { "id": "subnet-mon-01", "name": "monitoring", "cidr": "10.0.7.0/24", "role": "worker" },
-          { "id": "subnet-db-01", "name": "database", "cidr": "10.0.8.0/24", "role": "worker" }
-        ]
+          { "id": "subnet-cp-01", "name": "control-plane-a", "cidr": "10.0.1.0/24", "role": "control-plane" },
+          { "id": "subnet-cp-02", "name": "control-plane-b", "cidr": "10.0.2.0/24", "role": "control-plane" },
+          { "id": "subnet-cp-03", "name": "control-plane-c", "cidr": "10.0.3.0/24", "role": "control-plane" },
+          { "id": "subnet-wk-01", "name": "worker-nodes-a", "cidr": "10.0.10.0/24", "role": "worker" },
+          { "id": "subnet-wk-02", "name": "worker-nodes-b", "cidr": "10.0.11.0/24", "role": "worker" },
+          { "id": "subnet-wk-03", "name": "worker-nodes-c", "cidr": "10.0.12.0/24", "role": "worker" },
+          { "id": "subnet-wk-04", "name": "worker-nodes-d", "cidr": "10.0.13.0/24", "role": "worker" },
+          { "id": "subnet-wk-05", "name": "worker-nodes-e", "cidr": "10.0.14.0/24", "role": "worker" },
+          { "id": "subnet-wk-06", "name": "worker-nodes-f", "cidr": "10.0.15.0/24", "role": "worker" },
+          { "id": "subnet-wk-07", "name": "worker-nodes-g", "cidr": "10.0.16.0/24", "role": "worker" },
+          { "id": "subnet-wk-08", "name": "worker-nodes-h", "cidr": "10.0.17.0/24", "role": "worker" },
+          { "id": "subnet-svc-01", "name": "service-mesh", "cidr": "10.0.20.0/24", "role": "service" },
+          { "id": "subnet-svc-02", "name": "service-ingress", "cidr": "10.0.21.0/24", "role": "service" },
+          { "id": "subnet-svc-03", "name": "service-egress", "cidr": "10.0.22.0/24", "role": "service" },
+          { "id": "subnet-mon-01", "name": "monitoring", "cidr": "10.0.30.0/24", "role": "worker" },
+          { "id": "subnet-mon-02", "name": "logging", "cidr": "10.0.31.0/24", "role": "worker" },
+          { "id": "subnet-db-01", "name": "database-primary", "cidr": "10.0.40.0/24", "role": "worker" },
+          { "id": "subnet-db-02", "name": "database-replica", "cidr": "10.0.41.0/24", "role": "worker" },
+          { "id": "subnet-cache-01", "name": "cache-layer", "cidr": "10.0.50.0/24", "role": "worker" },
+          { "id": "subnet-batch-01", "name": "batch-processing", "cidr": "10.0.60.0/24", "role": "worker" }
+        ],
+        "serviceAccount": "hyperfleet-sa@my-gcp-project.iam.gserviceaccount.com",
+        "tags": ["hyperfleet", "production", "us-central1", "managed", "soc2"],
+        "diskType": "pd-ssd",
+        "diskSizeGB": 500,
+        "machineType": "n2-standard-16",
+        "imageType": "COS_CONTAINERD",
+        "enableSecureBoot": true,
+        "enableIntegrityMonitoring": true,
+        "enableConfidentialNodes": false
       }
     },
     "release": {
       "image": "registry.redhat.io/openshift4/ose-cluster-version-operator:v4.14.0",
-      "version": "4.14.0"
+      "version": "4.14.0",
+      "channel": "stable-4.14",
+      "upstream": "https://api.openshift.com/api/upgrades_info/graph"
     },
     "networking": {
       "clusterNetwork": [
         { "cidr": "10.10.0.0/16", "hostPrefix": 24 },
         { "cidr": "10.11.0.0/16", "hostPrefix": 24 },
-        { "cidr": "10.12.0.0/16", "hostPrefix": 24 }
+        { "cidr": "10.12.0.0/16", "hostPrefix": 24 },
+        { "cidr": "10.13.0.0/16", "hostPrefix": 24 },
+        { "cidr": "10.14.0.0/16", "hostPrefix": 24 }
       ],
-      "serviceNetwork": ["10.96.0.0/16", "10.112.0.0/16"]
+      "serviceNetwork": ["10.96.0.0/16", "10.112.0.0/16", "10.128.0.0/16"],
+      "networkType": "OVNKubernetes",
+      "proxy": {
+        "httpProxy": "http://proxy.internal.example.com:3128",
+        "httpsProxy": "https://proxy.internal.example.com:3129",
+        "noProxy": ".cluster.local,.svc,.internal.example.com,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,metadata.google.internal"
+      }
     },
     "dns": {
       "baseDomain": "example.com"
+    },
+    "security": {
+      "etcdEncryption": true,
+      "auditProfile": "WriteRequestBodies",
+      "podSecurityStandard": "restricted",
+      "fips": true,
+      "tlsSecurityProfile": {
+        "type": "Custom",
+        "minTLSVersion": "VersionTLS13",
+        "ciphers": ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256"]
+      }
+    },
+    "monitoring": {
+      "enabled": true,
+      "prometheusRetention": "15d",
+      "alertmanagerConfig": {
+        "receivers": [
+          { "name": "pagerduty-critical", "type": "pagerduty", "serviceKey": "REDACTED" },
+          { "name": "slack-warnings", "type": "slack", "channel": "#cluster-alerts-west" },
+          { "name": "email-daily", "type": "email", "to": "sre-team@example.com" }
+        ],
+        "routes": [
+          { "match": "severity=critical", "receiver": "pagerduty-critical", "repeatInterval": "5m" },
+          { "match": "severity=warning", "receiver": "slack-warnings", "repeatInterval": "1h" },
+          { "match": "severity=info", "receiver": "email-daily", "repeatInterval": "24h" }
+        ]
+      }
+    },
+    "logging": {
+      "enabled": true,
+      "forwarders": [
+        { "name": "splunk-prod", "type": "splunk", "endpoint": "https://splunk.internal.example.com:8088", "index": "k8s-prod-west" },
+        { "name": "cloudwatch-backup", "type": "cloudwatch", "region": "us-east-1", "logGroup": "/hyperfleet/clusters/west" }
+      ],
+      "retention": "90d",
+      "auditLogForwarding": true
+    },
+    "backup": {
+      "enabled": true,
+      "schedule": "0 2 * * *",
+      "retention": "30d",
+      "storageLocation": "gs://hyperfleet-backups-west/clusters",
+      "volumeSnapshots": true
     }
   }
 }
