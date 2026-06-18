@@ -12,7 +12,7 @@ import (
 )
 
 var _ = ginkgo.Describe("[Suite: channel][crud] Channel CRUD Lifecycle",
-	ginkgo.Label(labels.Tier1),
+	ginkgo.Label(labels.Tier0),
 	func() {
 		var h *helper.Helper
 		var channelID string
@@ -85,6 +85,23 @@ var _ = ginkgo.Describe("[Suite: channel][crud] Channel CRUD Lifecycle",
 			fetched, err := h.Client.GetChannel(ctx, channelID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec["is_default"]).To(Equal(true))
+		})
+
+		ginkgo.It("should update channel labels via PATCH", func(ctx context.Context) {
+			ginkgo.By("patching channel labels")
+			patched, err := h.Client.PatchChannel(ctx, channelID, client.ResourcePatchRequest{
+				Labels: map[string]string{
+					"crud": "channel-lifecycle",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "failed to patch channel")
+			Expect(patched.Generation).To(Equal(int32(2)), "generation should increment after PATCH")
+
+			ginkgo.By("verifying patched labels via GET")
+			fetched, err := h.Client.ListChannels(ctx, "labels.crud='channel-lifecycle'")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fetched.Items).To(HaveLen(1), "should have 1 channel")
+			Expect(fetched.Items[0].Id).To(HaveValue(Equal(channelID)))
 		})
 
 		ginkgo.It("should delete channel", func(ctx context.Context) {
