@@ -52,6 +52,10 @@ create_cluster() {
 #        delete_in_batches --data-urlencode "search=name like 'perf-seed-%'"
 delete_in_batches() {
   local deleted=0
+  local prev_batch=0
+  local stale_rounds=0
+  local max_stale=3
+  declare -A seen
 
   while true; do
     local clusters
@@ -69,9 +73,22 @@ delete_in_batches() {
       break
     fi
 
+    if [[ "$batch" -eq "$prev_batch" ]]; then
+      stale_rounds=$((stale_rounds + 1))
+      if [[ "$stale_rounds" -ge "$max_stale" ]]; then
+        echo "  WARN: $batch clusters remain after $max_stale rounds with no progress, stopping"
+        break
+      fi
+    else
+      stale_rounds=0
+    fi
+    prev_batch=$batch
+
     while IFS= read -r id; do
       [[ -z "$id" ]] && continue
       [[ "$id" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+      [[ -n "${seen[$id]:-}" ]] && continue
+      seen[$id]=1
       local http_code
       http_code=$(curl -s -o /dev/null -w '%{http_code}' $CURL_OPTS -X DELETE "$API_BASE/clusters/$id" --http1.1)
       if [[ "$http_code" =~ ^2 ]]; then
