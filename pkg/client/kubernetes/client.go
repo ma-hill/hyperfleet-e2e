@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -302,6 +303,43 @@ func (c *Client) ScaleDeployment(ctx context.Context, namespace, name string, re
 		}
 		return deploy.Status.AvailableReplicas >= replicas, nil
 	})
+}
+
+// ScaleDeploymentBySelector scales all deployments matching label selector string to the specified number of replicas.
+// Returns error if no deployments are found or if any scale operation fails.
+func (c *Client) ScaleDeploymentBySelector(ctx context.Context, namespace, selector string, replicas int32) error {
+	if strings.TrimSpace(selector) == "" {
+		return fmt.Errorf("selector cannot be empty or whitespace-only")
+	}
+
+	deployments, err := c.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: selector,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list deployments in namespace %s with selector %s: %w",
+			namespace, selector, err)
+	}
+
+	if len(deployments.Items) == 0 {
+		return fmt.Errorf("no deployments found in namespace %s with selector %s", namespace, selector)
+	}
+
+	var errs []error
+	for _, deploy := range deployments.Items {
+		if err := c.ScaleDeployment(ctx, namespace, deploy.Name, replicas); err != nil {
+			errs = append(errs, fmt.Errorf("failed to scale deployment %s: %w", deploy.Name, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		errMsgs := make([]string, len(errs))
+		for i, err := range errs {
+			errMsgs[i] = err.Error()
+		}
+		return fmt.Errorf("encountered %d error(s) scaling deployments: %s", len(errs), strings.Join(errMsgs, "; "))
+	}
+
+	return nil
 }
 
 // HasDeploymentCondition checks if deployment has the specified condition with expected status

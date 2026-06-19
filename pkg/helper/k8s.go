@@ -175,6 +175,18 @@ func (h *Helper) ScaleDeployment(ctx context.Context, namespace, name string, re
 	return nil
 }
 
+// ScaleDeploymentBySelector scales all deployments matching label selector string to the specified number of replicas.
+func (h *Helper) ScaleDeploymentBySelector(ctx context.Context, namespace, selector string, replicas int32) error {
+	logger.Info("scaling deployment by selector", "namespace", namespace, "selector", selector, "replicas", replicas)
+
+	if err := h.K8sClient.ScaleDeploymentBySelector(ctx, namespace, selector, replicas); err != nil {
+		return fmt.Errorf("failed to scale deployment in namespace %s with selector %s: %w", namespace, selector, err)
+	}
+
+	logger.Info("deployment scaled successfully by selector", "namespace", namespace, "selector", selector, "replicas", replicas)
+	return nil
+}
+
 // GetDeploymentName finds the deployment name for a Helm release by listing deployments with the release label.
 func (h *Helper) GetDeploymentName(ctx context.Context, namespace, releaseName string) (string, error) {
 	deployments, err := h.K8sClient.FetchDeploymentsByLabels(ctx, namespace, map[string]string{

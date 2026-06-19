@@ -35,14 +35,12 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Re-DELETE Idempotency and API 
 		ginkgo.It("should handle re-DELETE idempotently without changing deleted_time or generation",
 			ginkgo.Label(labels.Disruptive),
 			func(ctx context.Context) {
-				ginkgo.By("pausing sentinel to prevent hard-delete between DELETE calls")
-				sentinelDeployment, err := h.GetDeploymentName(ctx, h.Cfg.Namespace, helper.SentinelClustersRelease)
-				Expect(err).NotTo(HaveOccurred(), "failed to find sentinel-clusters deployment")
-				err = h.ScaleDeployment(ctx, h.Cfg.Namespace, sentinelDeployment, 0)
+				ginkgo.By("Scaling down sentinel cluster instances to prevent hard-delete between DELETE calls")
+				err := h.ScaleDeploymentBySelector(ctx, h.Cfg.Namespace, "app.kubernetes.io/instance in (sentinel-clusters,clusters)", 0)
 				Expect(err).NotTo(HaveOccurred(), "failed to scale sentinel to 0")
 				ginkgo.DeferCleanup(func(ctx context.Context) {
 					ginkgo.By("restoring sentinel-clusters to 1 replica")
-					if err := h.ScaleDeployment(ctx, h.Cfg.Namespace, sentinelDeployment, 1); err != nil {
+					if err := h.ScaleDeploymentBySelector(ctx, h.Cfg.Namespace, "app.kubernetes.io/instance in (sentinel-clusters,clusters)", 1); err != nil {
 						ginkgo.GinkgoWriter.Printf("Warning: failed to restore sentinel: %v\n", err)
 					}
 				})
