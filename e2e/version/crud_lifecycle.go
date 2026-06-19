@@ -12,7 +12,7 @@ import (
 )
 
 var _ = ginkgo.Describe("[Suite: version][crud] Version CRUD Lifecycle",
-	ginkgo.Label(labels.Tier1),
+	ginkgo.Label(labels.Tier0),
 	func() {
 		var h *helper.Helper
 		var channelID string
@@ -96,6 +96,23 @@ var _ = ginkgo.Describe("[Suite: version][crud] Version CRUD Lifecycle",
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fetched.Spec["is_default"]).To(Equal(true))
 			Expect(fetched.Spec["raw_version"]).To(Equal("4.18.0"))
+		})
+
+		ginkgo.It("should update version labels via PATCH", func(ctx context.Context) {
+			ginkgo.By("patching version labels")
+			patched, err := h.Client.PatchVersion(ctx, channelID, versionID, client.ResourcePatchRequest{
+				Labels: map[string]string{
+					"crud": versionID,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "failed to patch version")
+			Expect(patched.Generation).To(Equal(int32(2)), "generation should increment after PATCH")
+
+			ginkgo.By("verifying patched labels via LIST")
+			fetched, err := h.Client.ListVersions(ctx, channelID, "labels.crud='"+versionID+"'")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fetched.Items).To(HaveLen(1), "should have 1 version")
+			Expect(fetched.Items[0].Id).To(HaveValue(Equal(versionID)))
 		})
 
 		ginkgo.It("should delete version", func(ctx context.Context) {
