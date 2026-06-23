@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega" //nolint:staticcheck // dot import for test readability
 
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/config"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -43,6 +44,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API list latency with filters an
 			Expect(err).NotTo(HaveOccurred())
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters (search filter) latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdAPIList),
+				"GET /clusters with search filter exceeded threshold")
 		})
 
 		ginkgo.It("should list clusters with page size limit within acceptable latency", func(ctx context.Context) {
@@ -55,6 +58,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API list latency with filters an
 			Expect(err).NotTo(HaveOccurred())
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters (pageSize=10) latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdAPIList),
+				"GET /clusters with pageSize exceeded threshold")
 		})
 
 		ginkgo.It("should list clusters with pagination within acceptable latency", func(ctx context.Context) {
@@ -69,6 +74,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API list latency with filters an
 			Expect(err).NotTo(HaveOccurred())
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters (page=1, pageSize=10) latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdAPIList),
+				"GET /clusters with pagination exceeded threshold")
 		})
 	},
 )

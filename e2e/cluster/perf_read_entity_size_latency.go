@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/config"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -66,6 +67,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API read latency by entity size"
 				slices.Sort(durations)
 				median := durations[samples/2]
 				ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters/%s (%s entity) latency: %v (median of %d samples)\n", clusterID, size.name, median, samples)
+				Expect(median).To(BeNumerically("<", config.ThresholdAPIRead),
+					"GET /clusters/{id} (%s entity) exceeded threshold", size.name)
 			})
 		}
 	},

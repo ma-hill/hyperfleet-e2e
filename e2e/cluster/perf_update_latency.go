@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/config"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -57,6 +58,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] Update-to-re-reconciled latency"
 
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] Cluster update-to-re-reconciled latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdClusterUpdateReconciled),
+				"cluster update-to-re-reconciled exceeded threshold")
 		})
 	},
 )

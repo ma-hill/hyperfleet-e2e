@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/api/openapi"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/client"
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/config"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -62,6 +63,8 @@ var _ = ginkgo.Describe("[Suite: nodepool][perf] Delete-to-hard-delete latency",
 
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] NodePool delete-to-hard-delete latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdNodePoolDeleted),
+				"nodepool delete-to-hard-delete exceeded threshold")
 		})
 	},
 )

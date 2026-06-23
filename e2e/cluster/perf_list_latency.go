@@ -7,6 +7,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck // dot import for test readability
 
+	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/config"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/helper"
 	"github.com/openshift-hyperfleet/hyperfleet-e2e/pkg/labels"
 )
@@ -39,6 +40,8 @@ var _ = ginkgo.Describe("[Suite: cluster][perf] API list latency",
 			Expect(err).NotTo(HaveOccurred())
 			elapsed := time.Since(start)
 			ginkgo.GinkgoWriter.Printf("[PERF] GET /clusters latency: %v\n", elapsed)
+			Expect(elapsed).To(BeNumerically("<", config.ThresholdAPIList),
+				"GET /clusters exceeded threshold")
 		})
 	},
 )
