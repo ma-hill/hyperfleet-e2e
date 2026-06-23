@@ -27,9 +27,9 @@ Pre-flight order: `make check` then `make build`.
 | Architecture | `docs/architecture.md` |
 | Test placement strategy | [architecture repo](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/docs/e2e-testing/test-placement-strategy.md) — which layer a test belongs in (unit / integration / E2E) |
 | Test writing guide | `docs/development.md` |
-| Debugging | `docs/debugging.md` |
+| Debugging | `docs/debugging.md` (prow job mapping, CI troubleshooting, log locations) |
 | Local kind setup | `docs/local-kind-setup.md` |
-| Runbook | `docs/runbook.md` |
+| Runbook | `docs/runbook.md` (prow job schedules, label-to-CI mapping, test execution) |
 | Contributing | `CONTRIBUTING.md` |
 | Test case templates | `test-design/templates/` |
 | Test case documents | `test-design/testcases/` |

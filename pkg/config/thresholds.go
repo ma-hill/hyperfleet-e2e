@@ -11,13 +11,13 @@ const (
 )
 
 // Performance thresholds for reconciliation operations.
-// Values include ~1.5-2x buffer over measured baselines
-// to account for variance across runs and environments.
+// Calibrated from Prow tier1-nightly baselines (hyperfleet-dev-prow)
+// with ~50% headroom to absorb run-to-run variance.
 const (
-	ThresholdClusterCreateReconciled  = 20 * time.Second
-	ThresholdClusterUpdateReconciled  = 30 * time.Second
-	ThresholdClusterDeleted           = 60 * time.Second
-	ThresholdClusterCascadeDeleted    = 60 * time.Second
-	ThresholdNodePoolCreateReconciled = 20 * time.Second
-	ThresholdNodePoolDeleted          = 30 * time.Second
+	ThresholdClusterCreateReconciled  = 90 * time.Second // baseline ~60s
+	ThresholdClusterUpdateReconciled  = 60 * time.Second // baseline ~40s
+	ThresholdClusterDeleted           = 60 * time.Second // baseline ~40s
+	ThresholdClusterCascadeDeleted    = 75 * time.Second // baseline ~50s
+	ThresholdNodePoolCreateReconciled = 30 * time.Second // baseline ~20s
+	ThresholdNodePoolDeleted          = 30 * time.Second // baseline ~20s
 )
