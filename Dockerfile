@@ -74,9 +74,6 @@ COPY --from=builder /build/bin/hyperfleet-e2e /usr/local/bin/
 # Copy test payloads and fixtures
 COPY --from=builder /build/testdata /e2e/testdata
 
-# Copy deploy scripts
-COPY --from=builder /build/deploy-scripts /e2e/deploy-scripts
-
 # Copy env files
 COPY --from=builder /build/env /e2e/env
 

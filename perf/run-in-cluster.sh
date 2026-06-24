@@ -2,17 +2,17 @@
 # Build, push, and run perf tests inside the cluster.
 #
 # Usage:
-#   ./perf/run-in-cluster.sh   # uses QUAY_USER from .env
+#   ./perf/run-in-cluster.sh   # uses QUAY_USER from env/env.local or the current shell
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-[[ -f "$REPO_DIR/.env" ]] && set -a && source "$REPO_DIR/.env" && set +a
-NAMESPACE="${HF_NAMESPACE:-hyperfleet}"
+[[ -f "$REPO_DIR/env/env.local" ]] && set -a && source "$REPO_DIR/env/env.local" && set +a
+NAMESPACE="${NAMESPACE:-hyperfleet}"
 
-if [[ -z "${QUAY_USER:-}" ]]; then
+if [[ -z "${QUAY_USER}" ]]; then
   echo "ERROR: QUAY_USER is not set"
-  echo "Add QUAY_USER=myuser to .env or export it"
+  echo "Add QUAY_USER=myuser to env/env.local or export it"
   exit 1
 fi
 

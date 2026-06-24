@@ -12,7 +12,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-[[ -f "$REPO_DIR/.env" ]] && set -a && source "$REPO_DIR/.env" && set +a
+[[ -f "$REPO_DIR/env/env.local" ]] && set -a && source "$REPO_DIR/env/env.local" && set +a
 
 API_URL="${HYPERFLEET_API_URL:?ERROR: HYPERFLEET_API_URL is not set}"
 API_BASE="$API_URL/api/hyperfleet/v1"

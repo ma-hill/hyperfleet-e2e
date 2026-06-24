@@ -338,20 +338,6 @@ import (
 
 No need to manually register tests.
 
-### 4. Run Your Test
-
-```bash
-# Run all cluster tests
-make build
-./bin/hyperfleet-e2e test --focus "\[Suite: cluster\]"
-
-# Run specific test by description
-./bin/hyperfleet-e2e test --focus "Create Cluster via API"
-
-# Or run by label
-./bin/hyperfleet-e2e test --label-filter "critical && lifecycle"
-```
-
 ## Common Patterns
 
 ### Create Resource from Payload
@@ -389,42 +375,64 @@ for _, adapter := range statuses.Items {
 }
 ```
 
-### Running a development environment with custom dev images and RabbitMQ
+## Validating New E2E Tests
 
-> **For a complete local setup guide using kind**, see [Local kind Setup](local-kind-setup.md).
+After writing your test, validate it works properly:
 
-While in development, it is common to use custom images for components (api, sentinel, adapters) instead of the CI images.
+### 1. Set Up Your Development Environment
 
-It is also convenient to use RabbitMQ to avoid dealing with GCP credentials for Pub/Sub.
+You need a running HyperFleet environment before running tests. See the [Setup Guide](setup.md) for complete instructions:
 
-RabbitMQ has to be installed beforehand, you can use the `hyperfleet-infra` repository to execute:
+- **Kind (local):** Fast setup for local testing (recommended for development)
+- **GCP:** Cloud environment for more realistic testing
 
+The environment setup will configure required environment variables:
+- `HYPERFLEET_API_URL`
+- `MAESTRO_URL`
+- `NAMESPACE`
+- source `env/env.local` if required
+
+### 2. Build the E2E Binary
+
+```bash
+# Build the binary
+make build
 ```
-make install-rabbitmq NAMESPACE=rabbitmq
+
+### 3. Run Your Test
+
+```bash
+# Run your specific test by description
+./bin/hyperfleet-e2e test --focus "Your Test Description"
+
+# Or run by suite
+./bin/hyperfleet-e2e test --focus "\[Suite: Your new test suite\]"
 ```
 
-Then you can deploy the e2e test components with support for RabbitMQ and custom images executing:
+### 4. Run Pre-Commit Checks
 
+Before committing, ensure your code passes all checks:
+
+```bash
+# Run all checks (format, lint, unit tests)
+make check
 ```
-SENTINEL_BROKER_RABBITMQ_URL="amqp://guest:guest@rabbitmq.rabbitmq:5672" \
-ADAPTER_BROKER_RABBITMQ_URL="amqp://guest:guest@rabbitmq.rabbitmq:5672" \
-ADAPTER_BROKER_TYPE=rabbitmq \
-SENTINEL_BROKER_TYPE=rabbitmq \
-./deploy-scripts/deploy-clm.sh --action install \
---namespace <your-namespace> \
---image-registry quay.io/<your-user> \
---api-image-repo hyperfleet-api \
---api-image-tag <dev-xxx> \
---sentinel-image-repo hyperfleet-sentinel \
---sentinel-image-tag <dev-yyy> \
---adapter-image-repo hyperfleet-adapter \
---adapter-image-tag <dev-zzz> \
---api-base-url http://hyperfleet-api:8000 \
---api-adapters-cluster cl-namespace,cl-maestro,cl-deployment,cl-job \
---api-adapters-nodepool np-configmap \
---cluster-tier0-adapters cl-namespace,cl-maestro,cl-deployment,cl-job,cl-invalid-resource,cl-precondition-error \
---nodepool-tier0-adapters np-configmap
-```
+
+### 5. Verify Test Behavior
+
+Ensure your test:
+- ✅ Creates resources successfully
+- ✅ Waits for expected conditions
+- ✅ Cleans up resources (check manually if needed)
+- ✅ Passes consistently (run multiple times)
+- ✅ Fails appropriately when conditions aren't met
+
+### 6. Check Test Output
+
+Review the test output for:
+- Clear step descriptions (via `ginkgo.By()`)
+- Appropriate timeout values
+- Proper error messages on failure
 
 ## Next Steps
 

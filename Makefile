@@ -137,20 +137,6 @@ verify: generate fmt-check vet ## Run all verification checks
 .PHONY: check
 check: verify lint test ## Run all checks (fmt, vet, lint, test)
 
-##@ Local kind Development (see docs/local-kind-setup.md)
-
-.PHONY: local-up
-local-up: ## Full local setup: kind cluster + deploy + port-forward
-	./deploy-scripts/kind-local.sh up
-
-.PHONY: local-down
-local-down: ## Remove all components from local kind cluster
-	./deploy-scripts/kind-local.sh down
-
-.PHONY: local-rebuild
-local-rebuild: ## Rebuild + restart. Usage: make local-rebuild C=hyperfleet-adapter
-	./deploy-scripts/kind-local.sh rebuild $(if $(NO_CACHE),--no-cache) $(C)
-
 ##@ Container Images
 
 .PHONY: image

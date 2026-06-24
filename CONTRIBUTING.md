@@ -54,16 +54,28 @@ hyperfleet-e2e/
 │   ├── labels/       - Test label definitions
 │   └── logger/       - Structured logging (slog)
 ├── e2e/              - Test suites
-│   ├── adapter/      - Adapter failover and Maestro tests
+│   ├── adapter/      - Adapter lifecycle tests
+│   ├── channel/      - Channel management tests
 │   ├── cluster/      - Cluster lifecycle tests
-│   └── nodepool/     - NodePool management tests
+│   ├── nodepool/     - NodePool management tests
+│   └── version/      - Version management tests
 ├── testdata/         - Test payloads and fixtures
+│   ├── adapter-configs/ - Adapter configuration files
 │   └── payloads/
 │       ├── clusters/ - Cluster creation payloads
-│       └── nodepools/- NodePool creation payloads
+│       └── nodepools/ - NodePool creation payloads
+├── test-design/      - Test design documentation
+│   ├── templates/    - Test case templates
+│   ├── testcases/    - Test case documents
+│   └── user-journeys/ - User journey maps
 ├── configs/          - Configuration files
 │   └── config.yaml   - Default configuration
-└── docs/             - Documentation
+├── docs/             - Documentation
+├── env/              - Environment configuration files
+├── hack/             - Build and development scripts
+├── images/           - Container image definitions
+├── openapi/          - OpenAPI spec and generation config
+└── scripts/          - Utility scripts
 ```
 
 ## Testing

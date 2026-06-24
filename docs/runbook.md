@@ -1,282 +1,131 @@
 # HyperFleet E2E Test Runbook
 
-> **Audience:** Developers running e2e tests locally
+> **Audience:** Developers running E2E tests locally
 
-This runbook provides step-by-step instructions for setting up, running, and troubleshooting HyperFleet E2E tests in a local development environment.
+This runbook provides step-by-step instructions for running and troubleshooting HyperFleet E2E tests in a local development environment.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [Prepare Test Environment](#prepare-test-environment)
-- [Deploy CLM to Your Created GKE Cluster](#deploy-clm-to-your-created-gke-cluster)
-- [Running E2E Tests Locally](#running-e2e-tests-locally)
-- [Common Failure Modes and Troubleshooting](#common-failure-modes-and-troubleshooting)
-- [Test Coverage in CI](#test-coverage-in-ci)
+- [Running E2E Tests](#running-e2e-tests)
+- [Troubleshooting](#troubleshooting)
+- [CI Jobs](#ci-jobs)
 
 ## Prerequisites
 
-### Required Tools
+**Environment Setup:**
 
-The following tools must be installed on your local machine:
+Before running tests, you need a running HyperFleet environment. See the [Setup Guide](setup.md) for complete instructions on deploying HyperFleet using:
 
-| Tool | Minimum Version | Purpose | Installation |
-|------|----------------|---------|--------------|
-| **Go** | 1.25+ | Build and run the E2E framework | [go.dev](https://go.dev/doc/install) |
-| **kubectl** | 1.28+ | Interact with Kubernetes clusters | [kubernetes.io](https://kubernetes.io/docs/tasks/tools/) |
-| **helm** | 3.0+ | Deploy HyperFleet components | [helm.sh](https://helm.sh/docs/intro/install/) |
-| **git** | 2.30+ | Clone repositories and manage Helm charts | [git-scm.com](https://git-scm.com/downloads) |
-| **podman** or **docker** | Latest | Build container images (optional) | [podman.io](https://podman.io/) or [docker.com](https://www.docker.com/) |
+- **Kind (local):** Fast setup, no cloud dependencies, uses port-forwarding
+- **GCP:** Cloud environment, requires GCP access, uses LoadBalancer services
 
+The environment guide covers:
+- Tool installation and verification
+- HyperFleet deployment (Kind or GCP)
+- Port-forwarding / LoadBalancer setup
+- Environment variable configuration
+- Optional image settings override
 
-### Verify Prerequisites
+**Required environment variables** (set during environment setup):
 
-Run these commands to verify your setup:
+- `HYPERFLEET_API_URL` - HyperFleet API endpoint
+- `MAESTRO_URL` - Maestro API endpoint  
+- `NAMESPACE` - Deployment namespace
+- `source env/env.local` (Optional for tier 2 tests)
 
-```bash
-# Check Go version
-go version  # Should show 1.25 or higher
+## Running E2E Tests
 
-# Check kubectl
-kubectl version --client
-
-# Check Helm
-helm version
-
-# Check Git
-git --version
-
-# Check container tool (optional)
-podman --version || docker --version
-```
-
-## Prepare Test Environment
-
-### Clone and Configure Terraform
-
-First, clone the infrastructure repository and navigate to the terraform directory:
+### Build the E2E Binary
 
 ```bash
-git clone https://github.com/openshift-hyperfleet/hyperfleet-infra/
-cd hyperfleet-infra/terraform
-```
-
-### Install GKE Cluster
-
-Run the following Terraform commands to deploy your GKE cluster.
-
-#### Terraform Commands
-
-```bash
-# Copy and update the terraform variable file
-cp envs/gke/dev.tfvars.example envs/gke/dev-<your name>.tfvars
-# Update the following settings in your tfvars file
-# developer_name - set to your name, use_pubsub=false, enable_dead_letter=false
-
-# Copy and update the terraform backend file
-cp envs/gke/dev.tfbackend.example envs/gke/dev-<your name>.tfbackend
-# update the prefix field with your name
-
-# Initialize terraform with your backend configuration
-terraform init -backend-config=envs/gke/dev-<your name>.tfbackend
-
-# Preview the infrastructure changes
-terraform plan -var-file=envs/gke/dev-<your name>.tfvars
-
-# Apply the infrastructure changes
-terraform apply -var-file=envs/gke/dev-<your name>.tfvars
-```
-### Install Maestro
-
-After deploying the GKE cluster, install Maestro and create a consumer:
-
-```bash
-# Install Maestro
-make install-maestro
-
-# Create Maestro consumer (default: cluster1, test adapter are configured with it)
-make create-maestro-consumer MAESTRO_CONSUMER=cluster1
-
-# Patch the service type to LoadBalancer to expose a external IP
-kubectl patch svc maestro -n maestro -p '{"spec":{"type":"LoadBalancer"}}'
-```
-
-### Login to Cluster
-
-After the deployment completes, log in to the cluster locally using the output command (replace your name):
-
-```bash
-gcloud container clusters get-credentials hyperfleet-dev-<your name> --zone us-central1-a --project hcm-hyperfleet
-```
-
-## Deploy CLM to Your Created GKE Cluster
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/openshift-hyperfleet/hyperfleet-e2e.git
-cd hyperfleet-e2e
-```
-
-### Deploy HyperFleet Components
-
-The E2E tests require a running HyperFleet environment (API, Sentinel, and Adapters).
-
-```bash
-# 1. Copy the example configuration
-cd deploy-scripts/
-cp .env.example .env
-
-# 2. Edit .env with your settings
-vim .env
-source .env
-
-# 3. Deploy with custom configuration
-./deploy-clm.sh --action install --namespace "${NAMESPACE}"
-
-```
-
-**Key Configuration Parameters** (in `.env`):
-
-```bash
-# GCP configuration (required for Pub/Sub)
-export GCP_PROJECT_ID="${GCP_PROJECT_ID:-hcm-hyperfleet}"
-
-# Image configuration (optional - defaults to latest)
-export API_IMAGE_TAG="${API_IMAGE_TAG:-latest}"
-export SENTINEL_IMAGE_TAG="${SENTINEL_IMAGE_TAG:-latest}"
-export ADAPTER_IMAGE_TAG="${ADAPTER_IMAGE_TAG:-latest}"
-
-# Adapters to deploy (optional)
-export CLUSTER_TIER0_ADAPTERS_DEPLOYMENT="${CLUSTER_TIER0_ADAPTERS_DEPLOYMENT:-cl-namespace,cl-job,cl-deployment,cl-maestro}"
-export NODEPOOL_TIER0_ADAPTERS_DEPLOYMENT="${NODEPOOL_TIER0_ADAPTERS_DEPLOYMENT:-np-configmap}"
-
-# Adapters for API cluster/nodepool configuration
-export API_ADAPTERS_CLUSTER="${API_ADAPTERS_CLUSTER:-cl-namespace,cl-job,cl-deployment,cl-maestro}"
-export API_ADAPTERS_NODEPOOL="${API_ADAPTERS_NODEPOOL:-np-configmap}"
-
-
-# NAMESPACE must be unique to prevent GCP Pub/Sub topic/subscription collisions.
-# Set in the .env.example file as:
-export NAMESPACE="${NAMESPACE:-hyperfleet-e2e-$(echo ${USER:-default} | tr '[:upper:]' '[:lower:]')}"
-# Or can manually set it with as the namespace is DNS-1123 compliant
-export NAMESPACE=<unique_namespace>
-
-```
-
-#### Verify Deployment
-
-```bash
-# Check Helm releases
-helm list -n "${NAMESPACE}"
-
-# Verify all pods are running
-kubectl get pods -n "${NAMESPACE}"
-
-# Check pod logs if any issues
-kubectl logs -n "${NAMESPACE}" <pod-name>
-```
-
-**Expected State**: All pods should show status `Running` with `READY 1/1`.
-
-
-## Running E2E Tests Locally
-
-### Build the E2E Framework
-
-```bash
-# Generate API client from OpenAPI spec
-make generate
-
-# Build the hyperfleet-e2e binary
+# Generate API client from OpenAPI spec and build
 make build
 
 # Verify the build
 ./bin/hyperfleet-e2e --help
 ```
-### Configure API Access
 
-If the Maestro and Hyperfleet API services are not exposed via LoadBalancer, you'll need to port-forward them locally:
+### Run Tests
 
-```bash
-# Terminal 1 - Port-forward Maestro API (local port 8000)
-kubectl port-forward -n maestro svc/maestro 8000:8000
+Make sure you've set the required environment variables from the [Prerequisites](#prerequisites) section:
 
-# Terminal 2 - Port-forward Hyperfleet API (local port 8001)
-kubectl port-forward -n ${NAMESPACE} svc/hyperfleet-api 8001:8000
-```
+- `HYPERFLEET_API_URL`
+- `MAESTRO_URL`
+- `NAMESPACE`
 
-Then configure your environment variables:
+**Run tests by tier:**
 
 ```bash
-export MAESTRO_URL=http://localhost:8000
-export HYPERFLEET_API_URL=http://localhost:8001
-```
-
-### Basic Test Execution
-
-```bash
-# Run tests with specific label
+# Run tier0 tests (critical path)
 ./bin/hyperfleet-e2e test --label-filter=tier0
 
-# Run tests for specific suite
+# Run tier1 tests (important features)
+./bin/hyperfleet-e2e test --label-filter=tier1
+
+# Run tier2 tests (edge cases - requires sourcing env/env.local first)
+source env/env.local && ./bin/hyperfleet-e2e test --label-filter=tier2
+```
+
+**Run tests by suite:**
+
+```bash
+# Run all cluster tests
 ./bin/hyperfleet-e2e test --focus "\[Suite: cluster\]"
 
-# Run specific test by description
+# Run all nodepool tests
+./bin/hyperfleet-e2e test --focus "\[Suite: nodepool\]"
+
+# Run all adapter tests
+./bin/hyperfleet-e2e test --focus "\[Suite: adapter\]"
+```
+
+**Run specific tests by description:**
+
+```bash
 ./bin/hyperfleet-e2e test --focus "Create Cluster via API"
-
 ```
 
-**Example:**
+**View available options:**
 
 ```bash
-# Using environment variable
-export HYPERFLEET_API_URL=<value>
-export MAESTRO_URL=<value>
-export NAMESPACE=<NAMESPACE>
-# Run all tier0 cases
-./bin/hyperfleet-e2e test --label-filter=tier0
-
-# Run all tier1 cases
-./bin/hyperfleet-e2e test --label-filter=tier1
-```
-
-### View All Options
-
-```bash
-# Show all available commands
+# Show all commands
 ./bin/hyperfleet-e2e --help
 
 # Show test command options
 ./bin/hyperfleet-e2e test --help
 ```
 
-## Common Failure Modes and Troubleshooting
+## Troubleshooting
 
-### Tools and Tips
+### Debugging Tools
 
-The following tools are available to help debug and interact with HyperFleet components:
+The following tools can help debug and interact with HyperFleet components:
 
 | Tool | Purpose | Link |
 |------|---------|------|
-| **Hyperfleet Explorer** | View cluster/nodepool API responses | [https://github.com/rh-amarin/hyperfleet-explorer](https://github.com/rh-amarin/hyperfleet-explorer) |
-| **Scripts** | Interact with various component APIs and perform operations | [https://github.com/rh-amarin/hyperfleet-scripts](https://github.com/rh-amarin/hyperfleet-scripts) |
-| **k9s** | Kubernetes CLI to manage your clusters in style! | [https://k9scli.io/](https://k9scli.io/) |
+| **HyperFleet Explorer** | View cluster/nodepool API responses in a UI | [hyperfleet-explorer](https://github.com/rh-amarin/hyperfleet-explorer) |
+| **HyperFleet Scripts** | Interact with component APIs and perform operations | [hyperfleet-scripts](https://github.com/openshift-hyperfleet/hyperfleet-scripts) |
+| **k9s** | Kubernetes CLI to manage clusters | [k9scli.io](https://k9scli.io/) |
 
-### General Troubleshooting
+### Common Issues
 
-#### Namespace Configuration
+#### 1. Namespace Mismatch
 
-**Important:** Set the `NAMESPACE` environment variable to match the namespace used during deployment. Some test cases deploy adapters dynamically and need to target the same namespace where your HyperFleet components are running.
+**Problem:** Tests fail to find adapters or create resources.
+
+**Cause:** The `NAMESPACE` environment variable doesn't match the deployment namespace. Some tests deploy adapters dynamically and must target the same namespace where HyperFleet components are running.
+
+**Solution:**
 
 ```bash
-# Set NAMESPACE if you deployed to a unique namespace
-export NAMESPACE=<unique_namespace>
+export NAMESPACE=<your-deployment-namespace>
 ./bin/hyperfleet-e2e test --label-filter=tier0
 ```
 
-#### Timeout Errors
+#### 2. Timeout Errors
 
-If you encounter timeout errors like this:
+**Problem:** Test failures with timeout errors:
 
 ```
 [FAILED] cluster creation failed
@@ -285,14 +134,16 @@ Unexpected error:
   context deadline exceeded (Client.Timeout exceeded while awaiting headers)
 ```
 
-**Troubleshooting steps:**
+**Solution:**
 
-1. **Check if all pods are running:**
+1. **Verify all pods are running:**
+
    ```bash
    kubectl get pods -n ${NAMESPACE}
    ```
 
-   Expected output - all pods should show `Running` with `READY 1/1`:
+   Expected output — all pods should show `Running` with `READY 1/1`:
+
    ```
    NAME                                 READY   STATUS    RESTARTS   AGE
    hyperfleet-api-xxx                   1/1     Running   0          10m
@@ -302,42 +153,84 @@ Unexpected error:
    ```
 
 2. **Check pod logs for errors:**
+
    ```bash
-   # Check API logs
+   # API logs
    kubectl logs -n ${NAMESPACE} deployment/hyperfleet-api --tail=50
 
-   # Check Sentinel logs
+   # Sentinel logs
    kubectl logs -n ${NAMESPACE} deployment/hyperfleet-sentinel --tail=50
 
-   # Check adapter logs
+   # Adapter logs (example)
    kubectl logs -n ${NAMESPACE} deployment/cl-namespace-adapter --tail=50
    ```
 
-3. **Verify API connectivity:**
+3. **Test API connectivity:**
+
    ```bash
-   # Test API endpoint
    curl -f -X GET ${HYPERFLEET_API_URL}/api/hyperfleet/v1/clusters/
    ```
 
+   Expected: HTTP 200 response with JSON
+
 4. **Check service endpoints:**
+
    ```bash
-   # Verify LoadBalancer has external IP
+   # For GCP deployments - verify LoadBalancer has external IP
+   kubectl get svc -n ${NAMESPACE} hyperfleet-api
+
+   # For Kind deployments - verify port-forwarding is active
+   lsof -i :${API_LOCAL_PORT}
+   ```
+
+#### 3. Image Pull Errors
+
+**Problem:** Pods stuck in `ImagePullBackOff` or `ErrImagePull` status.
+
+**Solution:**
+
+1. Check if `env/env.local` image settings match your infra deployment. See [Configure Test Settings](setup.md#configure-test-settings) in the Setup guide for how to override image settings.
+2. Verify image registry credentials are configured in your cluster
+3. Check pod events:
+
+   ```bash
+   kubectl describe pod <pod-name> -n ${NAMESPACE}
+   ```
+
+#### 4. Port-Forward Connection Refused (Kind)
+
+**Problem:** Tests fail with "connection refused" when using Kind.
+
+**Solution:**
+
+1. Verify port-forward processes are running:
+
+   ```bash
+   ps aux | grep "port-forward"
+   ```
+
+2. Restart port-forwarding in separate terminals (see [Kind setup](setup.md#option-1-kind-local) in the Setup guide)
+
+3. Verify services exist:
+
+   ```bash
+   kubectl get svc -n maestro maestro
    kubectl get svc -n ${NAMESPACE} hyperfleet-api
    ```
 
-
-## Test Coverage in CI
-
-### How Your Tests Run in CI
+## CI Jobs
 
 The test cases you run locally are automatically picked up and executed in nightly CI jobs to ensure continuous validation of the system.
 
-**Job Configuration File:** All job definitions can be found in the [openshift-hyperfleet-hyperfleet-e2e-main__e2e.yaml](https://github.com/openshift/release/blob/main/ci-operator/config/openshift-hyperfleet/hyperfleet-e2e/openshift-hyperfleet-hyperfleet-e2e-main__e2e.yaml) configuration file.
+**Job Configuration:** [openshift-hyperfleet-hyperfleet-e2e-main__e2e.yaml](https://github.com/openshift/release/blob/main/ci-operator/config/openshift-hyperfleet/hyperfleet-e2e/openshift-hyperfleet-hyperfleet-e2e-main__e2e.yaml)
 
 | Job Name | Test Tier | Schedule | Description |
 |----------|-----------|----------|-------------|
-| **tier0-nightly** | tier0 | Daily | Runs basic smoke tests and happy critical path validations |
-| **tier1-nightly** | tier1 | Daily | Runs extended test suite |
+| **tier0-nightly** | tier0 | Daily | Critical: Core user journey broken, fix immediately, blocks release |
+| **tier1-nightly** | tier1 | Daily | Major: Important features affected, should be addressed |
+| **tier2-nightly** | tier2 | Daily | Minor: Edge cases or low-frequency scenarios, can be deferred |
+
+**Based on [`pkg/labels/labels.go`](../pkg/labels/labels.go) file tags**
 
 ### Job Configuration and Management
 
@@ -346,14 +239,24 @@ For comprehensive information about CI jobs, see the [Add HyperFleet E2E CI Job 
 - How CI jobs are configured in Prow
 - Viewing job results
 - Debugging job failures
+---
 
 To trigger the nightly or RC E2E jobs on demand via the Gangway API (including image-tag overrides), see [Trigger HyperFleet E2E Jobs via Gangway API](https://github.com/openshift-hyperfleet/architecture/blob/main/hyperfleet/docs/release/test-release/trigger-e2e-jobs-via-gangway.md).
 
 ## Changelog
 
-All notable changes to this document will be documented in this section.
+All notable changes to this document are documented below.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+### 2026-06-10
+
+#### Changed
+- Restructured runbook for clarity and consistency
+- Separated Kind and GCP setup into distinct sections with clearer step-by-step instructions into setup.md
+- Improved troubleshooting section with numbered common issues and solutions
+- Streamlined test execution instructions with better examples
+- Cleaned up formatting and removed duplicate content
 
 ### 2026-03-30
 
@@ -365,5 +268,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Running E2E Tests Locally section with build and execution commands
 - Common Failure Modes and Troubleshooting section with debugging tools and tips
 - Test Coverage in CI section documenting nightly jobs and Prow integration
-
 

@@ -2,7 +2,7 @@
 
 This guide provides a systematic approach to diagnosing E2E test failures in the HyperFleet test suite. It is intended for any developer investigating a failing test, whether in CI or locally.
 
-For guidance on **writing** tests, see [development.md](development.md). For **running** tests, see [getting-started.md](getting-started.md). For operational troubleshooting of deployed components (pod timeouts, API connectivity, k9s), see the [runbook.md troubleshooting section](runbook.md#common-failure-modes-and-troubleshooting).
+For guidance on **writing** tests, see [development.md](development.md). For **running** tests, see [getting-started.md](getting-started.md). For operational troubleshooting of deployed components (pod timeouts, API connectivity, k9s), see the [runbook.md troubleshooting section](runbook.md#troubleshooting).
 
 ---
 
@@ -246,7 +246,7 @@ For adapter execution phases (ParamExtraction → Preconditions → Resources �
 
 ## 5. Timeout Tuning
 
-For timeout configuration, env var overrides, and default values, see the [runbook troubleshooting section](runbook.md#common-failure-modes-and-troubleshooting) and `configs/config.yaml`.
+For timeout configuration, env var overrides, and default values, see the [runbook troubleshooting section](runbook.md#troubleshooting) and `configs/config.yaml`.
 
 ### When to Increase vs. When to Fix
 

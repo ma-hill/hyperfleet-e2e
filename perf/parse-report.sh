@@ -8,7 +8,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-[[ -f "$REPO_DIR/.env" ]] && set -a && source "$REPO_DIR/.env" && set +a
+[[ -f "$REPO_DIR/env/env.local" ]] && set -a && source "$REPO_DIR/env/env.local" && set +a
 
 RESULTS_DIR="$REPO_DIR/perf/results"
 

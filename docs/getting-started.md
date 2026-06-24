@@ -5,8 +5,10 @@ New to HyperFleet E2E? This guide will help you run your first test in 10 minute
 ## Prerequisites
 
 - **Go 1.25+** - Required for building the framework
-- **HyperFleet API access** - API endpoint URL
+- **HyperFleet deployment** - Running HyperFleet API and Maestro instance
 - **10 minutes** - Time to complete this guide
+
+> **Need to set up a HyperFleet environment first?** See the [Setup Guide](setup.md) for complete instructions using Kind (local) or GCP.
 
 ## Installation
 
@@ -28,13 +30,15 @@ You should see the command help output.
 
 ## Your First Test
 
-**Step 1**: Set API URL
+**Step 1**: Set required environment variables
 
 ```bash
-export HYPERFLEET_API_URL=https://api.hyperfleet.example.com
+export HYPERFLEET_API_URL=<your-hyperfleet-api-url>
+export MAESTRO_URL=<your-maestro-url>
+export NAMESPACE=<your-deployment-namespace>
 ```
 
-**Step 2**: Run tests
+**Step 2**: Run tier0 tests
 
 ```bash
 ./bin/hyperfleet-e2e test --label-filter=tier0
@@ -60,6 +64,12 @@ The framework:
 ```bash
 # Run critical tests only
 ./bin/hyperfleet-e2e test --label-filter=tier0
+
+# Run important features
+./bin/hyperfleet-e2e test --label-filter=tier1
+
+# Run edge cases (requires sourcing env/env.local first)
+source env/env.local && ./bin/hyperfleet-e2e test --label-filter=tier2
 
 # Run all cluster suite tests
 ./bin/hyperfleet-e2e test --focus "\[Suite: cluster\]"
@@ -105,9 +115,13 @@ make generate    # Regenerate OpenAPI client
 
 **API connection errors**:
 ```bash
-# Verify API URL
+# Verify API URLs are set
 echo $HYPERFLEET_API_URL
-curl -I $HYPERFLEET_API_URL
+echo $MAESTRO_URL
+echo $NAMESPACE
+
+# Test connectivity
+curl -f -X GET ${HYPERFLEET_API_URL}/api/hyperfleet/v1/clusters/
 ```
 
 **Test timeouts**: Increase timeouts via environment variables:
@@ -115,11 +129,13 @@ curl -I $HYPERFLEET_API_URL
 HYPERFLEET_TIMEOUTS_CLUSTER_RECONCILED=45m make e2e
 ```
 
+**Namespace mismatch**: Ensure `NAMESPACE` matches your deployment namespace. Some tests deploy adapters dynamically and must target the same namespace where HyperFleet components are running.
+
 **Configuration not taking effect**:
 
 Priority order (highest to lowest):
 1. CLI flags (`--api-url`)
-2. Environment variables (`HYPERFLEET_API_URL`)
+2. Environment variables (`HYPERFLEET_API_URL`, `MAESTRO_URL`, `NAMESPACE`)
 3. Config file (`configs/config.yaml`)
 4. Built-in defaults
 
@@ -132,8 +148,11 @@ Priority order (highest to lowest):
 ./bin/hyperfleet-e2e test --log-level=debug
 ```
 
+For more troubleshooting help and environment issues, see the [Runbook](runbook.md#troubleshooting) or [Setup Guide](setup.md).
+
 ## Next Steps
 
+- **[Runbook](runbook.md)** - Running tests and troubleshooting guide
 - **[Architecture](architecture.md)** - Understand how the framework works
 - **[Development](development.md)** - Write your own tests
 - **CLI Reference** - Run `./bin/hyperfleet-e2e --help`

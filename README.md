@@ -10,19 +10,8 @@ Black-box end-to-end testing for validating the HyperFleet cluster lifecycle man
 HyperFleet E2E is a Ginkgo-based testing framework that validates HyperFleet cluster lifecycle management through black-box tests. It creates ephemeral test clusters for each test, providing complete isolation and supporting parallel execution.
 
 ## Quick Start
-
-```bash
-# Clone and build
-git clone https://github.com/openshift-hyperfleet/hyperfleet-e2e.git
-cd hyperfleet-e2e
-make build
-
-# Set API URL and run tests
-export HYPERFLEET_API_URL=https://api.hyperfleet.example.com
-./bin/hyperfleet-e2e test --label-filter=tier0
-```
-
-**Done!** The framework created a cluster, validated adapters, and cleaned up resources.
+- **[Setup Guide](docs/setup.md)** - Setup environment to run e2e tests
+- **[Getting Started](docs/getting-started.md)** - Getting started guide
 
 ## Running Tests
 
@@ -85,15 +74,28 @@ hyperfleet-e2e/
 │   ├── labels/       - Test label definitions
 │   └── logger/       - Structured logging (slog)
 ├── e2e/              - Test suites
+│   ├── adapter/      - Adapter lifecycle tests
+│   ├── channel/      - Channel management tests
 │   ├── cluster/      - Cluster lifecycle tests
-│   └── nodepool/     - NodePool management tests
+│   ├── nodepool/     - NodePool management tests
+│   └── version/      - Version management tests
 ├── testdata/         - Test payloads and fixtures
+│   ├── adapter-configs/ - Adapter configuration files
 │   └── payloads/
 │       ├── clusters/ - Cluster creation payloads
 │       └── nodepools/ - NodePool creation payloads
+├── test-design/      - Test design documentation
+│   ├── templates/    - Test case templates
+│   ├── testcases/    - Test case documents
+│   └── user-journeys/ - User journey maps
 ├── configs/          - Configuration files
 │   └── config.yaml   - Default configuration
-└── docs/             - Documentation
+├── docs/             - Documentation
+├── env/              - Environment configuration files
+├── hack/             - Build and development scripts
+├── images/           - Container image definitions
+├── openapi/          - OpenAPI spec and generation config
+└── scripts/          - Utility scripts
 ```
 
 ## Key Features
@@ -108,8 +110,8 @@ hyperfleet-e2e/
 ## Documentation
 
 - **[System Architecture](https://github.com/openshift-hyperfleet/architecture)** - Single source of truth for all HyperFleet architectural documentation
-- **[Local kind Setup](docs/local-kind-setup.md)** - Run E2E tests locally with kind and RabbitMQ
-- **[Runbook](docs/runbook.md)** - E2E test runbook for GKE clusters
+- **[Setup Guide](docs/setup.md)** - Setup environment to run e2e tests
+- **[Runbook](docs/runbook.md)** - E2E test runbook
 - **[Getting Started](docs/getting-started.md)** - Run your first test in 10 minutes
 - **[Framework Architecture](docs/architecture.md)** - Understand the framework design
 - **[Development](docs/development.md)** - Write new tests
