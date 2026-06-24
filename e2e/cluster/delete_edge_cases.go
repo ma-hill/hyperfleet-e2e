@@ -172,9 +172,8 @@ var _ = ginkgo.Describe("[Suite: cluster][delete] Recreate Cluster After Hard-De
 				Should(BeEmpty())
 
 			ginkgo.By("creating a new cluster with the same name")
-			kind := "Cluster"
 			newCluster, err := h.Client.CreateCluster(ctx, openapi.ClusterCreateRequest{
-				Kind:   &kind,
+				Kind:   "Cluster",
 				Name:   originalCluster.Name,
 				Labels: originalCluster.Labels,
 				Spec:   originalCluster.Spec,

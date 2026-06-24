@@ -37,7 +37,7 @@ var _ = ginkgo.Describe("[Suite: channel][crud] Channel CRUD Lifecycle",
 		})
 
 		ginkgo.It("should create a channel with correct fields", func(ctx context.Context) {
-			Expect(channel.Kind).To(HaveValue(Equal("Channel")), "kind should be Channel")
+			Expect(channel.Kind).To(Equal("Channel"), "kind should be Channel")
 			Expect(channel.Generation).To(Equal(int32(1)), "new channel should have generation=1")
 			Expect(channel.DeletedTime).To(BeNil(), "new channel should not have deleted_time")
 		})
@@ -49,7 +49,7 @@ var _ = ginkgo.Describe("[Suite: channel][crud] Channel CRUD Lifecycle",
 
 			Expect(*fetched.Id).To(Equal(channelID))
 			Expect(fetched.Name).To(Equal(channel.Name))
-			Expect(fetched.Kind).To(HaveValue(Equal("Channel")))
+			Expect(fetched.Kind).To(Equal("Channel"))
 			Expect(fetched.Generation).To(Equal(int32(1)))
 		})
 

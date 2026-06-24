@@ -17,7 +17,7 @@ const apiPrefix = "/api/hyperfleet/v1/"
 
 type Resource struct {
 	Id              *string           `json:"id,omitempty"`
-	Kind            *string           `json:"kind,omitempty"`
+	Kind            string            `json:"kind"`
 	Name            string            `json:"name"`
 	Href            *string           `json:"href,omitempty"`
 	Spec            map[string]any    `json:"spec,omitempty"`
