@@ -7,7 +7,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
-	github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.21
+	github.com/openshift-hyperfleet/hyperfleet-api-spec v1.0.23
 	github.com/samber/lo v1.53.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.0

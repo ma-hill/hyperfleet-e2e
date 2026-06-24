@@ -37,7 +37,7 @@ var _ = ginkgo.Describe("[Suite: wifconfig][crud] WifConfig CRUD Lifecycle",
 		})
 
 		ginkgo.It("should create a wifconfig with correct fields", func(ctx context.Context) {
-			Expect(wifConfig.Kind).To(HaveValue(Equal("WifConfig")), "kind should be WifConfig")
+			Expect(wifConfig.Kind).To(Equal("WifConfig"), "kind should be WifConfig")
 			Expect(wifConfig.Generation).To(Equal(int32(1)), "new wifconfig should have generation=1")
 			Expect(wifConfig.DeletedTime).To(BeNil(), "new wifconfig should not have deleted_time")
 		})
@@ -49,7 +49,7 @@ var _ = ginkgo.Describe("[Suite: wifconfig][crud] WifConfig CRUD Lifecycle",
 
 			Expect(*fetched.Id).To(Equal(wifConfigID))
 			Expect(fetched.Name).To(Equal(wifConfig.Name))
-			Expect(fetched.Kind).To(HaveValue(Equal("WifConfig")))
+			Expect(fetched.Kind).To(Equal("WifConfig"))
 			Expect(fetched.Generation).To(Equal(int32(1)))
 		})
 

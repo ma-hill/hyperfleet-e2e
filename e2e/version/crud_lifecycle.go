@@ -45,7 +45,7 @@ var _ = ginkgo.Describe("[Suite: version][crud] Version CRUD Lifecycle",
 		})
 
 		ginkgo.It("should create a version with correct fields", func(ctx context.Context) {
-			Expect(version.Kind).To(HaveValue(Equal("Version")), "kind should be Version")
+			Expect(version.Kind).To(Equal("Version"), "kind should be Version")
 			Expect(version.Generation).To(Equal(int32(1)), "new version should have generation=1")
 			Expect(version.DeletedTime).To(BeNil(), "new version should not have deleted_time")
 		})
@@ -57,7 +57,7 @@ var _ = ginkgo.Describe("[Suite: version][crud] Version CRUD Lifecycle",
 
 			Expect(*fetched.Id).To(Equal(versionID))
 			Expect(fetched.Name).To(Equal(version.Name))
-			Expect(fetched.Kind).To(HaveValue(Equal("Version")))
+			Expect(fetched.Kind).To(Equal("Version"))
 			Expect(fetched.Generation).To(Equal(int32(1)))
 		})
 
